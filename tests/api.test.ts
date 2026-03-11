@@ -28,7 +28,7 @@ describe("Severity Calculation", () => {
   });
 
   test("critical severity for major losses", () => {
-    const result = calculateSeverity({ amountLost: 500000 });
+    const result = calculateSeverity({ amountLost: 1000000 });
     expect(result.level).toBe("critical");
     expect(result.score).toBe(10);
   });

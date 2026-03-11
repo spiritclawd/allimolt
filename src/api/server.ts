@@ -32,6 +32,15 @@ import {
   logAudit,
   DEFAULT_RATE_LIMITS,
 } from "../security/middleware";
+import {
+  initAuth,
+  validateApiKey,
+  hasPermission,
+  getAuthHeader,
+  getRateLimitForKey,
+  addApiKey,
+  listApiKeys,
+} from "./auth";
 
 // ==================== RISK SCORING ====================
 
@@ -88,28 +97,55 @@ function error(message: string, status = 400): Response {
   return json({ success: false, error: message }, status);
 }
 
+function unauthorized(): Response {
+  return json({ success: false, error: "Unauthorized - valid API key required" }, 401);
+}
+
+// ==================== AUTH MIDDLEWARE ====================
+
+function requireAuth(req: Request, requiredPermission: "read" | "write" | "admin"): { valid: boolean; response?: Response } {
+  const apiKey = getAuthHeader(req);
+  
+  if (!apiKey) {
+    return { valid: false, response: unauthorized() };
+  }
+  
+  const keyData = validateApiKey(apiKey);
+  if (!keyData) {
+    return { valid: false, response: unauthorized() };
+  }
+  
+  if (!hasPermission(keyData, requiredPermission)) {
+    return { valid: false, response: json({ success: false, error: "Insufficient permissions" }, 403) };
+  }
+  
+  // Rate limit based on key tier
+  const clientId = getClientId(req);
+  const rateLimit = checkRateLimit(clientId, { 
+    windowMs: 60000, 
+    maxRequests: getRateLimitForKey(keyData) 
+  });
+  
+  if (!rateLimit.allowed) {
+    return { 
+      valid: false, 
+      response: json({ success: false, error: "Rate limit exceeded", resetIn: rateLimit.resetIn }, 429) 
+    };
+  }
+  
+  return { valid: true };
+}
+
 // ==================== HANDLERS ====================
 
 async function handleSubmitClaim(req: Request): Promise<Response> {
+  // Auth required for write operations
+  const authCheck = requireAuth(req, "write");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const clientId = getClientId(req);
   
-  // Rate limiting
-  const rateLimit = checkRateLimit(clientId, DEFAULT_RATE_LIMITS.claims);
-  if (!rateLimit.allowed) {
-    logAudit({
-      action: "submit_claim",
-      clientId,
-      path: "/api/claims",
-      method: "POST",
-      success: false,
-      error: "Rate limit exceeded",
-    });
-    return json(
-      { success: false, error: "Rate limit exceeded", resetIn: rateLimit.resetIn },
-      429
-    );
-  }
-
+  // Remove duplicate rate limiting - handled by requireAuth
   try {
     const body = await req.json();
     
@@ -179,13 +215,19 @@ async function handleSubmitClaim(req: Request): Promise<Response> {
   }
 }
 
-function handleGetClaim(id: string): Response {
+function handleGetClaim(req: Request, id: string): Response {
+  const authCheck = requireAuth(req, "read");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const claim = getClaimById(id);
   if (!claim) return error("Claim not found", 404);
   return json({ success: true, claim });
 }
 
-function handleGetAgentClaims(agentId: string): Response {
+function handleGetAgentClaims(req: Request, agentId: string): Response {
+  const authCheck = requireAuth(req, "read");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const claims = getClaimsByAgent(decodeURIComponent(agentId));
   return json<ClaimsQueryResponse>({
     claims,
@@ -195,7 +237,10 @@ function handleGetAgentClaims(agentId: string): Response {
   });
 }
 
-function handleGetAgentScore(agentId: string): Response {
+function handleGetAgentScore(req: Request, agentId: string): Response {
+  const authCheck = requireAuth(req, "read");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const claims = getClaimsByAgent(decodeURIComponent(agentId));
   const { score, confidence } = calculateRiskScore(claims);
   const grade = gradeFromScore(score);
@@ -229,7 +274,10 @@ function handleGetAgentScore(agentId: string): Response {
   });
 }
 
-function handleGetStats(): Response {
+function handleGetStats(req: Request): Response {
+  const authCheck = requireAuth(req, "read");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const claims = getAllClaims(1000);
   const totalValueLost = claims.reduce((sum, c) => sum + c.amountLost, 0);
   const totalValueRecovered = claims.reduce((sum, c) => sum + (c.recoveredAmount || 0), 0);
@@ -283,7 +331,10 @@ function handleGetStats(): Response {
   });
 }
 
-function handleGetClaims(params: URLSearchParams): Response {
+function handleGetClaims(req: Request, params: URLSearchParams): Response {
+  const authCheck = requireAuth(req, "read");
+  if (!authCheck.valid) return authCheck.response!;
+  
   const limit = parseInt(params.get("limit") || "50");
   const offset = parseInt(params.get("offset") || "0");
   const claims = getAllClaims(limit, offset);
@@ -318,17 +369,18 @@ async function handleRequest(req: Request): Promise<Response> {
   if (path === "/" && method === "GET") {
     return json({
       name: "Allimolt",
-      description: "The Credit Bureau for AI Agents",
-      version: "0.1.0",
-      documentation: "https://github.com/karlostoteles/allimolt",
+      description: "The Credit Bureau for AI Agents - PRIVATE API",
+      version: "0.2.0",
+      auth: "Bearer <API_KEY> required for all endpoints",
+      defaultKey: "allimolt_admin_change_me",
       endpoints: {
-        "POST /api/claims": "Submit a new claim",
-        "GET /api/claims": "List all claims (?limit=&offset=)",
-        "GET /api/claims?id=...": "Get specific claim",
-        "GET /api/agents/:id/claims": "Get claims for an agent",
-        "GET /api/agents/:id/score": "Get risk score for an agent",
-        "GET /api/stats": "Get global statistics",
-        "GET /health": "Health check",
+        "POST /api/claims": "Submit a new claim (write permission)",
+        "GET /api/claims": "List all claims (read permission)",
+        "GET /api/claims?id=...": "Get specific claim (read permission)",
+        "GET /api/agents/:id/claims": "Get claims for an agent (read permission)",
+        "GET /api/agents/:id/score": "Get risk score for an agent (read permission)",
+        "GET /api/stats": "Get global statistics (read permission)",
+        "GET /health": "Health check (no auth)",
       },
     });
   }
@@ -336,18 +388,18 @@ async function handleRequest(req: Request): Promise<Response> {
   if (path === "/api/claims" && method === "POST") return handleSubmitClaim(req);
   if (path === "/api/claims" && method === "GET") {
     const id = url.searchParams.get("id");
-    if (id) return handleGetClaim(id);
-    return handleGetClaims(url.searchParams);
+    if (id) return handleGetClaim(req, id);
+    return handleGetClaims(req, url.searchParams);
   }
   
   const agentMatch = path.match(/^\/api\/agents\/([^/]+)\/(claims|score)$/);
   if (agentMatch) {
     const [, agentId, action] = agentMatch;
-    if (action === "claims") return handleGetAgentClaims(agentId);
-    return handleGetAgentScore(agentId);
+    if (action === "claims") return handleGetAgentClaims(req, agentId);
+    return handleGetAgentScore(req, agentId);
   }
   
-  if (path === "/api/stats" && method === "GET") return handleGetStats();
+  if (path === "/api/stats" && method === "GET") return handleGetStats(req);
   if (path === "/health") return json({ status: "ok", timestamp: Date.now() });
   
   return error("Not found", 404);
@@ -637,6 +689,9 @@ function seedData() {
 // ==================== START SERVER ====================
 
 seedData();
+
+// Initialize auth
+initAuth();
 
 const server = serve({
   port: 3399,
