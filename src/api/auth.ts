@@ -4,10 +4,21 @@
  * API key based authentication for private API access
  */
 
+// Tier configuration - MUST be exported for middleware
+export type TierName = "free" | "developer" | "platform" | "enterprise";
+
+export const TIERS: Record<TierName, { requestsPerDay: number; price: number }> = {
+  free: { requestsPerDay: 100, price: 0 },
+  developer: { requestsPerDay: 10000, price: 49 },
+  platform: { requestsPerDay: 100000, price: 499 },
+  enterprise: { requestsPerDay: -1, price: 0 }, // Unlimited, custom pricing
+};
+
 export interface APIKey {
   id: string;
   key: string;
   name: string;
+  tier: TierName;
   permissions: ("read" | "write" | "admin")[];
   createdAt: number;
   lastUsed: number;
@@ -39,6 +50,7 @@ export function initAuth(): void {
       id: "default_admin",
       key: hashKey(DEFAULT_ADMIN_KEY),
       name: "Default Admin",
+      tier: "enterprise",
       permissions: ["read", "write", "admin"],
       createdAt: Date.now(),
       lastUsed: Date.now(),
@@ -62,20 +74,24 @@ export function validateApiKey(key: string): APIKey | null {
 
 export function addApiKey(
   name: string,
+  tier: TierName = "free",
   permissions: ("read" | "write" | "admin")[] = ["read"],
-  rateLimit: number = 100
 ): { key: APIKey; plainKey: string } {
   const plainKey = `allimolt_${crypto.randomUUID().replace(/-/g, "")}`;
   const hashedKey = hashKey(plainKey);
+  
+  const tierConfig = TIERS[tier];
+  const rateLimit = Math.floor(tierConfig.requestsPerDay / 1440); // Per minute
   
   const newKey: APIKey = {
     id: crypto.randomUUID(),
     key: hashedKey,
     name,
+    tier,
     permissions,
     createdAt: Date.now(),
     lastUsed: Date.now(),
-    rateLimit,
+    rateLimit: rateLimit > 0 ? rateLimit : 1000,
   };
   
   apiKeys.set(plainKey, newKey);
