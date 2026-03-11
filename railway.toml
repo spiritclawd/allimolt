@@ -1,0 +1,18 @@
+# Railway configuration for AlliGo
+# https://railway.app
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "bun run src/api/server.ts"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Environment variables (set in Railway dashboard):
+# - ADMIN_API_KEY: Your secure admin API key
+# - JWT_SECRET: Secret for JWT tokens
+# - DATABASE_PATH: /app/data/alligo.db (default)

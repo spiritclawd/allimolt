@@ -4,31 +4,138 @@
 
 When agents fail, lose money, or cause damage — there's no record. Until now.
 
-## The Problem
+## 🚀 Quick Start
 
-```
-Your agent loses $50K in a failed arbitrage?    → No record
-Your agent's wallet gets drained?               → No record  
-Your agent sends funds to wrong address?        → No record
-Another agent fails to deliver on a contract?   → No record
-```
+```bash
+# Clone the repo
+git clone https://github.com/spiritclawd/AlliGo.git
+cd AlliGo
 
-Every day, autonomous agents make mistakes that cost real money. But this data vanishes into the void — scattered across Twitter threads, Discord complaints, and forgotten logs.
+# Start the server (auto-creates .env and data dir)
+bun start.ts
 
-**Armilla insures companies deploying AI.**
-**Daydreams tracks agent identity and reputation.**
-**No one tracks what matters: LOSSES.**
-
-## The Solution
-
-AlliGo is the first **Agent Claims Registry** — a database of agent failures, losses, and disputes.
-
-```
-BEFORE: Agent fails → Data lost → No accountability → Same mistakes repeat
-AFTER:  Agent fails → Claim logged → History preserved → Risk quantified
+# Or manually:
+bun run src/api/server.ts
 ```
 
-## What This Enables
+Server runs at **http://localhost:3399**
+
+## 📊 What's Tracked
+
+Currently tracking **$47M+** across **12+ real incidents**:
+
+| Agent | Amount Lost | Cause |
+|-------|-------------|-------|
+| Arup Finance Agent | $25M | AI deepfake fraud |
+| AI Portfolio Manager | $20.4M | No stop-losses |
+| Lobstar Wilde | $250K | State management failure |
+| Alpha Arbitrage | $230K | Flash loan exploit |
+| Bridge Router Agent | $340K | Timeout failure |
+
+## 🛡️ API Endpoints
+
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `GET /` | None | Web Dashboard |
+| `GET /api/stats` | Read | Global statistics |
+| `GET /api/agents/:id/score` | Read | Agent risk score |
+| `GET /api/agents/:id/claims` | Read | Agent claim history |
+| `POST /api/claims` | Write | Submit new claim |
+| `GET /health` | None | Health check |
+
+### Authentication
+
+Include API key in Authorization header:
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:3399/api/stats
+```
+
+**Default dev keys:**
+- Admin: `alligo_admin_dev_key`
+- Read: `alligo_read_dev_key`
+
+## 🚢 Railway Deployment
+
+### One-Click Deploy
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template)
+
+### Manual Deploy
+
+1. **Create Railway project**
+   ```bash
+   railway login
+   railway init
+   ```
+
+2. **Set environment variables** (in Railway dashboard):
+   ```
+   ADMIN_API_KEY=your_secure_key_here
+   JWT_SECRET=your_jwt_secret_here
+   DATABASE_PATH=/app/data/alligo.db
+   NODE_ENV=production
+   ```
+
+3. **Deploy**
+   ```bash
+   railway up
+   ```
+
+4. **Generate domain**
+   ```bash
+   railway domain
+   ```
+
+## 🔧 Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | No | 3399 | Server port |
+| `NODE_ENV` | No | development | Environment |
+| `DATABASE_PATH` | No | ./data/alligo.db | SQLite database path |
+| `ADMIN_API_KEY` | **Yes** (prod) | - | Admin API key |
+| `JWT_SECRET` | **Yes** (prod) | - | JWT signing secret |
+| `RATE_LIMIT_MAX_REQUESTS` | No | 100 | Requests per window |
+
+## 📁 Project Structure
+
+```
+AlliGo/
+├── src/
+│   ├── api/
+│   │   ├── server.ts    # Main API server
+│   │   ├── db.ts        # SQLite database layer
+│   │   └── auth.ts      # Authentication
+│   ├── config/
+│   │   └── index.ts     # Configuration module
+│   ├── schema/
+│   │   └── claim.ts     # Type definitions
+│   ├── security/
+│   │   └── middleware.ts # Security & validation
+│   └── ingestion/
+│       └── ingest-live.ts # Data ingestion
+├── public/
+│   └── index.html       # Web dashboard
+├── data/                # SQLite database (auto-created)
+├── Dockerfile           # Docker image
+├── railway.toml         # Railway config
+└── start.ts             # Quick start script
+```
+
+## 🔐 Production Security
+
+1. **Generate secure keys:**
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. **Set in Railway environment:**
+   - `ADMIN_API_KEY` = generated key
+   - `JWT_SECRET` = different generated key
+
+3. **Never commit `.env` to Git**
+
+## 📈 What This Enables
 
 | Stakeholder | Value |
 |-------------|-------|
@@ -38,199 +145,11 @@ AFTER:  Agent fails → Claim logged → History preserved → Risk quantified
 | **Agent Platforms** | "We require clean AlliGo record" — quality filter |
 | **Researchers** | "Real failure patterns, not hypotheticals" — better agents |
 
-## The Data We Capture
+## 🤝 Contributing
 
-```typescript
-interface AgentClaim {
-  // WHO
-  agentId: string;          // ERC-8004 identity or public key
-  agentName?: string;       // Human readable name
-  developer?: string;       // Who built it
-  
-  // WHAT
-  claimType: ClaimType;     // loss | error | breach | fraud | unknown
-  category: ClaimCategory;  // trading | payment | security | execution
-  
-  // HOW MUCH
-  amountLost: number;       // In USD at time of loss
-  assetType?: string;       // ETH, USDC, etc.
-  assetAmount?: number;     // Original amount
-  
-  // WHEN
-  timestamp: number;        // Unix timestamp
-  chain?: string;           // ethereum, solana, etc.
-  txHash?: string;          // Transaction if on-chain
-  
-  // CONTEXT
-  description: string;      // What happened
-  counterparty?: string;    // Other agent/address involved
-  resolution?: Resolution;  // pending | resolved | disputed | unrecoverable
-  
-  // VERIFICATION
-  source: ClaimSource;      // self_reported | third_party | verified | scraped
-  evidence?: string[];      // Links to proof
-}
-```
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## API (MVP)
-
-```bash
-# Submit a claim
-POST /api/claims
-{
-  "agentId": "0x...",
-  "claimType": "loss",
-  "amountLost": 50000,
-  "description": "Agent executed wrong trade, lost principal"
-}
-
-# Get agent risk score
-GET /api/agents/{agentId}/score
-→ { score: 0.85, totalClaims: 0, totalVolume: "1.2M" }
-
-# Get claims for an agent
-GET /api/agents/{agentId}/claims
-→ [{ claimId, amount, date, type, ... }]
-
-# Get aggregate stats
-GET /api/stats
-→ { totalClaims: 847, totalValueLost: "12.5M", topCategories: [...] }
-```
-
-## Why This Works
-
-1. **Network Effect** — More claims = more valuable data = more users = more claims
-2. **Moat** — Data advantage compounds over time
-3. **Timing** — Armilla exists, Daydreams exists, but the DATA LAYER doesn't
-4. **Simplicity** — No smart contracts needed. Pure API. Start now.
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      ALLIGO                             │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│   ┌──────────────┐    ┌──────────────┐                  │
-│   │  Claim Input │    │  Query API   │                  │
-│   │  (Submit)    │    │  (Search)    │                  │
-│   └──────┬───────┘    └──────┬───────┘                  │
-│          │                   │                          │
-│          ▼                   ▼                          │
-│   ┌────────────────────────────────────┐               │
-│   │         CLAIMS DATABASE             │               │
-│   │   (PostgreSQL / SQLite for MVP)     │               │
-│   └────────────────────────────────────┘               │
-│          │                   │                          │
-│          ▼                   ▼                          │
-│   ┌──────────────┐    ┌──────────────┐                  │
-│   │ Risk Scoring │    │   Dashboard  │                  │
-│   │   Engine     │    │   (Web UI)   │                  │
-│   └──────────────┘    └──────────────┘                  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Quick Start
-
-```bash
-# Install
-bun install
-
-# Run API
-bun run dev
-
-# Submit a claim
-curl -X POST http://localhost:3000/api/claims \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agentId": "agent_trader_001",
-    "claimType": "loss",
-    "category": "trading",
-    "amountLost": 5000,
-    "description": "Agent misread market signal, executed wrong trade direction"
-  }'
-
-# Check agent score
-curl http://localhost:3000/api/agents/agent_trader_001/score
-```
-
-## Roadmap
-
-### Phase 1: MVP (Now)
-- [x] Core schema design
-- [ ] Claims API (submit, query)
-- [ ] Risk scoring algorithm
-- [ ] Simple web dashboard
-- [ ] Seed with real failure data from news/research
-
-### Phase 2: Traction
-- [ ] Public launch
-- [ ] Integration with Daydreams (ERC-8004)
-- [ ] Browser extension for agent risk
-- [ ] API keys for platforms
-
-### Phase 3: Moat
-- [ ] Partnership with Armilla (insurance data)
-- [ ] On-chain verification of claims
-- [ ] Agent insurance products built on AlliGo data
-- [ ] "AlliGo Certified" badge for agents
-
-## The Vision
-
-```
-TODAY:
-  "I want to use Agent X but I don't know if it's safe"
-  → Guess, hope, maybe lose money
-
-TOMORROW:
-  "I want to use Agent X"
-  → Check AlliGo score
-  → "0 claims, 10,000 successful transactions, bonded $100K"
-  → Proceed with confidence
-```
-
-## IP Protection Strategy
-
-AlliGo follows a dual-license model inspired by successful open-core projects:
-
-| Component | License | Purpose |
-|-----------|---------|---------|
-| **API & Schema** | MIT | Open standard for community adoption |
-| **Basic Risk Scoring** | MIT | Transparent, auditable algorithm |
-| **Pro Risk Scoring** | Proprietary | ML-based prediction, insurance optimization |
-| **Data Ingestion** | MIT | Community can contribute data sources |
-
-This ensures:
-- ✅ Community can build on transparent core
-- ✅ Commercial sustainability for long-term development
-- ✅ Enterprise features for insurance underwriting
-- ✅ Data remains open and accessible
-
-For Pro licensing: **license@alligo.ai**
-
-## Security
-
-AlliGo implements multiple security layers:
-
-- **Rate Limiting**: Prevents API abuse
-- **Input Validation**: Sanitizes all user input
-- **Malicious Pattern Detection**: Blocks injection attempts
-- **Audit Logging**: Tracks all API actions
-- **Secure Headers**: XSS/CSRF protection
-
-See `src/security/middleware.ts` for implementation details.
-
-## Data Sources
-
-AlliGo aggregates incident data from:
-
-- **Self-reported claims**: Users submit incidents
-- **Brave Search API**: Automated incident discovery
-- **Cloudflare Robots.txt**: Bot activity data
-- **Community contributions**: Verified submissions
-
-## License
+## 📄 License
 
 **Core API & Schema**: MIT — The data wants to be free.
 **Pro Features**: Proprietary — Contact for licensing.
@@ -240,5 +159,3 @@ AlliGo aggregates incident data from:
 **Built by agents, for agents.**
 
 *Your trusted partner in AI agent risk assessment.*
-
-*Following the OpenClaw and Moltbook playbook: Open core, Pro features.*

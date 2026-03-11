@@ -1,9 +1,10 @@
 /**
  * AlliGo - Database Layer
- * SQLite for MVP, designed to scale to PostgreSQL
+ * Persistent SQLite storage, designed to scale to PostgreSQL
  */
 
 import { Database } from "bun:sqlite";
+import { existsSync } from "fs";
 import {
   AgentClaim,
   ClaimType,
@@ -11,9 +12,18 @@ import {
   Resolution,
   ClaimSource,
 } from "../schema/claim";
+import { config, ensureDatabaseDir } from "../config";
 
-// Initialize database
-const db = new Database(":memory:", { create: true });
+// Ensure database directory exists before creating DB
+ensureDatabaseDir();
+
+// Initialize database with persistent storage
+const db = new Database(config.databasePath, { create: true });
+
+// Enable WAL mode for better concurrent performance
+db.run("PRAGMA journal_mode = WAL");
+db.run("PRAGMA synchronous = NORMAL");
+db.run("PRAGMA cache_size = 10000");
 
 // Create tables
 db.run(`
@@ -62,9 +72,40 @@ db.run(`
   )
 `);
 
+// Create indexes for common queries
 db.run(`CREATE INDEX IF NOT EXISTS idx_claims_agentId ON claims(agentId)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_claims_timestamp ON claims(timestamp)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_claims_type ON claims(claimType)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_claims_category ON claims(category)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_claims_chain ON claims(chain)`);
+
+// Create API keys table
+db.run(`
+  CREATE TABLE IF NOT EXISTS api_keys (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    tier TEXT DEFAULT 'free',
+    permissions TEXT DEFAULT 'read',
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    last_used INTEGER,
+    request_count INTEGER DEFAULT 0,
+    active INTEGER DEFAULT 1
+  )
+`);
+
+// Create audit log table
+db.run(`
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action TEXT NOT NULL,
+    clientId TEXT,
+    path TEXT,
+    method TEXT,
+    success INTEGER,
+    error TEXT,
+    timestamp INTEGER DEFAULT (strftime('%s', 'now'))
+  )
+`);
 
 // ==================== CLAIMS ====================
 
@@ -142,6 +183,114 @@ export function countClaims(): number {
   return result.count;
 }
 
+export function searchClaims(query: string): AgentClaim[] {
+  const stmt = db.prepare(`
+    SELECT * FROM claims 
+    WHERE agentId LIKE ? OR agentName LIKE ? OR title LIKE ? OR description LIKE ?
+    ORDER BY timestamp DESC
+    LIMIT 50
+  `);
+  const searchTerm = `%${query}%`;
+  const rows = stmt.all(searchTerm, searchTerm, searchTerm, searchTerm) as any[];
+  return rows.map(rowToClaim);
+}
+
+export function updateClaimResolution(id: string, resolution: Resolution, notes?: string): boolean {
+  const stmt = db.prepare(`
+    UPDATE claims 
+    SET resolution = ?, resolutionNotes = ?, resolvedAt = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(resolution, notes || null, Date.now(), id);
+  return result.changes > 0;
+}
+
+// ==================== API KEYS ====================
+
+export interface ApiKey {
+  key: string;
+  name: string;
+  tier: "free" | "pro" | "enterprise";
+  permissions: "read" | "write" | "admin";
+  createdAt: number;
+  lastUsed?: number;
+  requestCount: number;
+  active: boolean;
+}
+
+export function getApiKey(key: string): ApiKey | null {
+  const stmt = db.prepare("SELECT * FROM api_keys WHERE key = ? AND active = 1");
+  const row = stmt.get(key) as any;
+  if (!row) return null;
+  
+  // Update last used
+  db.prepare("UPDATE api_keys SET last_used = ?, request_count = request_count + 1 WHERE key = ?")
+    .run(Date.now(), key);
+  
+  return {
+    key: row.key,
+    name: row.name,
+    tier: row.tier,
+    permissions: row.permissions,
+    createdAt: row.created_at,
+    lastUsed: row.last_used,
+    requestCount: row.request_count,
+    active: row.active === 1,
+  };
+}
+
+export function createApiKey(name: string, tier: ApiKey["tier"] = "free", permissions: ApiKey["permissions"] = "read"): string {
+  const key = `alligo_${tier}_${Math.random().toString(36).substr(2, 24)}`;
+  const stmt = db.prepare("INSERT INTO api_keys (key, name, tier, permissions) VALUES (?, ?, ?, ?)");
+  stmt.run(key, name, tier, permissions);
+  return key;
+}
+
+export function listApiKeys(): ApiKey[] {
+  const stmt = db.prepare("SELECT * FROM api_keys ORDER BY created_at DESC");
+  const rows = stmt.all() as any[];
+  return rows.map(row => ({
+    key: row.key,
+    name: row.name,
+    tier: row.tier,
+    permissions: row.permissions,
+    createdAt: row.created_at,
+    lastUsed: row.last_used,
+    requestCount: row.request_count,
+    active: row.active === 1,
+  }));
+}
+
+export function revokeApiKey(key: string): boolean {
+  const stmt = db.prepare("UPDATE api_keys SET active = 0 WHERE key = ?");
+  const result = stmt.run(key);
+  return result.changes > 0;
+}
+
+// ==================== AUDIT LOG ====================
+
+export function logAudit(entry: {
+  action: string;
+  clientId?: string;
+  path?: string;
+  method?: string;
+  success: boolean;
+  error?: string;
+}): void {
+  const stmt = db.prepare(`
+    INSERT INTO audit_log (action, clientId, path, method, success, error)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    entry.action,
+    entry.clientId || null,
+    entry.path || null,
+    entry.method || null,
+    entry.success ? 1 : 0,
+    entry.error || null
+  );
+}
+
 // ==================== HELPERS ====================
 
 function rowToClaim(row: any): AgentClaim {
@@ -181,6 +330,17 @@ function rowToClaim(row: any): AgentClaim {
     platform: row.platform || undefined,
     agentVersion: row.agentVersion || undefined,
   };
+}
+
+// Check if database is empty (for seeding)
+export function isDatabaseEmpty(): boolean {
+  const count = countClaims();
+  return count === 0;
+}
+
+// Close database connection (for graceful shutdown)
+export function closeDatabase(): void {
+  db.close();
 }
 
 export { db };

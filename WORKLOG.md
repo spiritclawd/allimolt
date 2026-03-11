@@ -166,3 +166,71 @@ startIngestionScheduler(24 * 60 * 60 * 1000, (incidents) => {
 - Extracts: agent name, amount lost, chain, platform
 - Deduplicates by URL
 - Adds directly to the database as pending claims
+
+---
+
+## Production Readiness Update (Current Session)
+
+### Branding Update: AlliMolt → AlliGo
+- Changed name from AlliMolt to AlliGo
+- Updated domain references to alligo.ai
+- Removed Allianz references (trademark concerns)
+- New tagline: "Your trusted partner in AI agent risk assessment"
+- GitHub repo now at: https://github.com/spiritclawd/AlliGo
+
+### Production Infrastructure
+- [x] **SQLite Persistent Database** - Replaced in-memory with file-based SQLite
+- [x] **Environment Configuration** - `.env` support with config module
+- [x] **Production Dashboard** - Full web UI with live data
+- [x] **API Key Management** - Tiered keys (free/pro/enterprise)
+- [x] **Docker Support** - Dockerfile for container deployment
+- [x] **Railway Ready** - railway.toml for one-click deploy
+
+### New Files Created
+```
+src/config/index.ts     - Environment configuration module
+.env.example           - Environment template
+Dockerfile             - Docker image definition
+railway.toml           - Railway deployment config
+start.ts               - Quick start script
+```
+
+### Database Changes
+- `:memory:` → `./data/alligo.db` (persistent SQLite)
+- WAL mode enabled for better concurrent performance
+- Auto-creates data directory on startup
+- Added `api_keys` table for key management
+- Added `audit_log` table for tracking
+
+### API Improvements
+- Health endpoint includes database stats
+- Dashboard auto-detects API base URL
+- Better error messages
+- CORS headers for cross-origin access
+
+### Deployment Instructions
+```bash
+# Railway one-click:
+# 1. Connect GitHub repo
+# 2. Set environment variables:
+#    - ADMIN_API_KEY (generate with: openssl rand -hex 32)
+#    - JWT_SECRET (generate another)
+# 3. Deploy
+
+# Local production test:
+docker build -t alligo .
+docker run -p 3399:3399 -v alligo-data:/app/data alligo
+```
+
+### Current Stats
+- **12 claims** seeded from real incidents
+- **$47M+** total value tracked
+- **6 chains** covered (Ethereum, Solana, Base, Polygon, Bitcoin, Multi)
+- **7 categories** of failures
+
+### Next Steps
+1. Deploy to Railway
+2. Set up custom domain (alligo.ai)
+3. Add more data ingestion sources
+4. Build browser extension for agent risk display
+5. Partnership outreach (Armilla, Daydreams)

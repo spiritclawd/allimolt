@@ -1,41 +1,48 @@
-# Sensitive files - do not commit to public repository
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Pro/proprietary code (keep private)
-src/core/scoring_pro.ts
-src/core/SCORING_PRO_LICENSE.ts
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Logs
-*.log
-logs/
-
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
 # Build outputs
 dist/
 build/
+*.tsbuildinfo
 
-# IDE
+# Database files (keep schema, ignore data)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-error.log
+
+# Editor directories
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Keys and secrets
-*.pem
-*.key
-secrets/
+# Test coverage
+coverage/
+
+# Misc
+.cache/
+.temp/
+.tmp/

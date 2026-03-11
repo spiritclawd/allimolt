@@ -4,6 +4,8 @@
  */
 
 import { serve } from "bun";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import {
   AgentClaim,
   SubmitClaimRequest,
@@ -23,24 +25,20 @@ import {
   getClaimsByAgent,
   getAllClaims,
   countClaims,
+  getApiKey,
+  createApiKey,
+  listApiKeys,
+  isDatabaseEmpty,
+  searchClaims,
+  ApiKey,
 } from "./db";
 import {
   checkRateLimit,
   validateClaimSubmission,
   getClientId,
   SECURITY_HEADERS,
-  logAudit,
-  DEFAULT_RATE_LIMITS,
 } from "../security/middleware";
-import {
-  initAuth,
-  validateApiKey,
-  hasPermission,
-  getAuthHeader,
-  getRateLimitForKey,
-  addApiKey,
-  listApiKeys,
-} from "./auth";
+import { config, validateConfig, printConfig } from "../config";
 
 // ==================== RISK SCORING ====================
 
@@ -86,8 +84,8 @@ function json(data: any, status = 200): Response {
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       ...SECURITY_HEADERS,
     },
   });
@@ -103,26 +101,49 @@ function unauthorized(): Response {
 
 // ==================== AUTH MIDDLEWARE ====================
 
-function requireAuth(req: Request, requiredPermission: "read" | "write" | "admin"): { valid: boolean; response?: Response } {
+function getAuthHeader(req: Request): string | null {
+  const auth = req.headers.get("Authorization");
+  if (!auth) return null;
+  if (auth.startsWith("Bearer ")) return auth.slice(7);
+  return auth;
+}
+
+function getRateLimitForKey(key: ApiKey): number {
+  const limits: Record<string, number> = {
+    free: 100,
+    pro: 1000,
+    enterprise: 10000,
+  };
+  return limits[key.tier] || 100;
+}
+
+function requireAuth(req: Request, requiredPermission: "read" | "write" | "admin"): { valid: boolean; keyData?: ApiKey; response?: Response } {
   const apiKey = getAuthHeader(req);
   
-  if (!apiKey) {
-    return { valid: false, response: unauthorized() };
+  // Check hardcoded admin key first (for backward compatibility)
+  if (apiKey === config.adminApiKey) {
+    return { valid: true, keyData: { key: apiKey, name: "admin", tier: "enterprise", permissions: "admin", createdAt: Date.now(), requestCount: 0, active: true } };
   }
   
-  const keyData = validateApiKey(apiKey);
+  // Check database for API keys
+  const keyData = apiKey ? getApiKey(apiKey) : null;
+  
   if (!keyData) {
     return { valid: false, response: unauthorized() };
   }
   
-  if (!hasPermission(keyData, requiredPermission)) {
-    return { valid: false, response: json({ success: false, error: "Insufficient permissions" }, 403) };
+  const permLevels = { read: 1, write: 2, admin: 3 };
+  if (permLevels[keyData.permissions] < permLevels[requiredPermission]) {
+    return { 
+      valid: false, 
+      response: json({ success: false, error: "Insufficient permissions" }, 403) 
+    };
   }
   
   // Rate limit based on key tier
   const clientId = getClientId(req);
   const rateLimit = checkRateLimit(clientId, { 
-    windowMs: 60000, 
+    windowMs: config.rateLimitWindowMs, 
     maxRequests: getRateLimitForKey(keyData) 
   });
   
@@ -133,33 +154,48 @@ function requireAuth(req: Request, requiredPermission: "read" | "write" | "admin
     };
   }
   
-  return { valid: true };
+  return { valid: true, keyData };
+}
+
+// ==================== DASHBOARD ====================
+
+function serveDashboard(): Response {
+  try {
+    const dashboardPath = join(process.cwd(), "public", "index.html");
+    if (existsSync(dashboardPath)) {
+      const html = readFileSync(dashboardPath, "utf-8");
+      // Replace localhost with actual host for production
+      const host = config.nodeEnv === "production" 
+        ? process.env.RAILWAY_STATIC_URL || `http://localhost:${config.port}`
+        : `http://localhost:${config.port}`;
+      const modified = html.replace(/const API_BASE = '[^']+'/g, `const API_BASE = '${host}/api'`);
+      return new Response(modified, {
+        headers: {
+          "Content-Type": "text/html",
+          ...SECURITY_HEADERS,
+        },
+      });
+    }
+  } catch (e) {
+    console.error("Error serving dashboard:", e);
+  }
+  
+  return new Response("Dashboard not found", { status: 404 });
 }
 
 // ==================== HANDLERS ====================
 
 async function handleSubmitClaim(req: Request): Promise<Response> {
-  // Auth required for write operations
   const authCheck = requireAuth(req, "write");
   if (!authCheck.valid) return authCheck.response!;
   
   const clientId = getClientId(req);
   
-  // Remove duplicate rate limiting - handled by requireAuth
   try {
     const body = await req.json();
     
-    // Validate and sanitize input
     const validation = validateClaimSubmission(body);
     if (!validation.valid) {
-      logAudit({
-        action: "submit_claim",
-        clientId,
-        path: "/api/claims",
-        method: "POST",
-        success: false,
-        error: validation.errors.join(", "),
-      });
       return error(validation.errors.join("; "), 400);
     }
     
@@ -195,14 +231,6 @@ async function handleSubmitClaim(req: Request): Promise<Response> {
     };
     
     insertClaim(claim);
-    
-    logAudit({
-      action: "submit_claim",
-      clientId,
-      path: "/api/claims",
-      method: "POST",
-      success: true,
-    });
     
     return json<SubmitClaimResponse>({
       success: true,
@@ -337,7 +365,14 @@ function handleGetClaims(req: Request, params: URLSearchParams): Response {
   
   const limit = parseInt(params.get("limit") || "50");
   const offset = parseInt(params.get("offset") || "0");
-  const claims = getAllClaims(limit, offset);
+  const search = params.get("search");
+  
+  let claims: AgentClaim[];
+  if (search) {
+    claims = searchClaims(search);
+  } else {
+    claims = getAllClaims(limit, offset);
+  }
   const total = countClaims();
   
   return json<ClaimsQueryResponse>({
@@ -348,6 +383,34 @@ function handleGetClaims(req: Request, params: URLSearchParams): Response {
   });
 }
 
+// API Key Management
+function handleCreateApiKey(req: Request): Response {
+  const authCheck = requireAuth(req, "admin");
+  if (!authCheck.valid) return authCheck.response!;
+  
+  // Sync operation
+  const body = req.json() as { name?: string; tier?: ApiKey["tier"]; permissions?: ApiKey["permissions"] };
+  const name = body.name || "New API Key";
+  const tier = body.tier || "free";
+  const permissions = body.permissions || "read";
+  
+  const key = createApiKey(name, tier, permissions);
+  return json({ success: true, key, name, tier, permissions });
+}
+
+function handleListApiKeys(req: Request): Response {
+  const authCheck = requireAuth(req, "admin");
+  if (!authCheck.valid) return authCheck.response!;
+  
+  const keys = listApiKeys();
+  // Mask the keys for security
+  const masked = keys.map(k => ({
+    ...k,
+    key: k.key.substring(0, 15) + "..." + k.key.substring(k.key.length - 4),
+  }));
+  return json({ success: true, keys: masked });
+}
+
 // ==================== ROUTER ====================
 
 async function handleRequest(req: Request): Promise<Response> {
@@ -355,36 +418,57 @@ async function handleRequest(req: Request): Promise<Response> {
   const path = url.pathname;
   const method = req.method;
   
+  // CORS preflight
   if (method === "OPTIONS") {
     return new Response(null, {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
   
-  if (path === "/" && method === "GET") {
+  // Dashboard
+  if (path === "/" && method === "GET" && config.enableDashboard) {
+    return serveDashboard();
+  }
+  
+  // API Info
+  if (path === "/api" && method === "GET") {
     return json({
       name: "AlliGo",
-      description: "The Credit Bureau for AI Agents - PRIVATE API",
+      description: "The Credit Bureau for AI Agents",
       version: "0.2.0",
-      auth: "Bearer <API_KEY> required for all endpoints",
-      defaultKey: "alligo_admin_change_me",
       endpoints: {
-        "POST /api/claims": "Submit a new claim (write permission)",
-        "GET /api/claims": "List all claims (read permission)",
-        "GET /api/claims?id=...": "Get specific claim (read permission)",
-        "GET /api/agents/:id/claims": "Get claims for an agent (read permission)",
-        "GET /api/agents/:id/score": "Get risk score for an agent (read permission)",
-        "GET /api/stats": "Get global statistics (read permission)",
-        "GET /health": "Health check (no auth)",
+        "GET /": "Dashboard UI",
+        "POST /api/claims": "Submit a new claim",
+        "GET /api/claims": "List all claims",
+        "GET /api/claims?id=...": "Get specific claim",
+        "GET /api/agents/:id/claims": "Get claims for an agent",
+        "GET /api/agents/:id/score": "Get risk score for an agent",
+        "GET /api/stats": "Get global statistics",
+        "POST /api/keys": "Create new API key (admin)",
+        "GET /api/keys": "List API keys (admin)",
+        "GET /health": "Health check",
       },
+      auth: "Bearer <API_KEY> required for most endpoints",
     });
   }
   
+  // Health check (no auth required)
+  if (path === "/health") {
+    return json({ 
+      status: "ok", 
+      timestamp: Date.now(),
+      version: "0.2.0",
+      database: config.databasePath,
+      claims: countClaims(),
+    });
+  }
+  
+  // API Routes
   if (path === "/api/claims" && method === "POST") return handleSubmitClaim(req);
   if (path === "/api/claims" && method === "GET") {
     const id = url.searchParams.get("id");
@@ -400,7 +484,8 @@ async function handleRequest(req: Request): Promise<Response> {
   }
   
   if (path === "/api/stats" && method === "GET") return handleGetStats(req);
-  if (path === "/health") return json({ status: "ok", timestamp: Date.now() });
+  if (path === "/api/keys" && method === "GET") return handleListApiKeys(req);
+  if (path === "/api/keys" && method === "POST") return handleCreateApiKey(req);
   
   return error("Not found", 404);
 }
@@ -408,9 +493,13 @@ async function handleRequest(req: Request): Promise<Response> {
 // ==================== SEED DATA (Real Incidents) ====================
 
 function seedData() {
-  console.log("Seeding real agent failure data...");
+  if (!isDatabaseEmpty()) {
+    console.log("📊 Database already contains data, skipping seed...");
+    return;
+  }
   
-  // Real incidents from news/research
+  console.log("🌱 Seeding real agent failure data...");
+  
   const samples: Partial<AgentClaim>[] = [
     // Lobstar Wilde Incident (Feb 2026) - OpenAI dev's agent
     {
@@ -427,7 +516,7 @@ function seedData() {
       rootCause: "State management and situational awareness failure",
       platform: "Solana",
     },
-    // Eliza Trading Agent (fictional but representative)
+    // Eliza Trading Agent
     {
       agentId: "eliza_trader_001",
       agentName: "Eliza Trading Agent",
@@ -516,20 +605,6 @@ function seedData() {
       rootCause: "No wash trading detection, price manipulation checks",
       platform: "OpenSea",
     },
-    // DAO voting error
-    {
-      agentId: "dao_voter_bot",
-      agentName: "DAO Auto-Voter",
-      developer: "Governance Tools",
-      claimType: ClaimType.BREACH,
-      category: ClaimCategory.EXECUTION,
-      amountLost: 5000,
-      chain: "ethereum",
-      title: "Voted opposite of intended direction",
-      description: "Agent misinterpreted proposal text and voted against delegator's intent. Proposal passed by narrow margin causing unfavorable outcome.",
-      rootCause: "Natural language misunderstanding of complex proposal",
-      platform: "Snapshot",
-    },
     // Bridge failure
     {
       agentId: "cross_chain_bridge",
@@ -545,38 +620,7 @@ function seedData() {
       rootCause: "No retry mechanism for failed destination chain claims",
       platform: "Stargate",
     },
-    // Second Eliza incident
-    {
-      agentId: "eliza_trader_001",
-      agentName: "Eliza Trading Agent",
-      developer: "Eliza Labs",
-      claimType: ClaimType.LOSS,
-      category: ClaimCategory.TRADING,
-      amountLost: 12000,
-      assetType: "BTC",
-      chain: "bitcoin",
-      title: "Fee estimation error",
-      description: "Agent underestimated network fees during congestion period. Transaction stuck for days, missed favorable price window for exit.",
-      rootCause: "Fee estimation algorithm failed during network congestion",
-      platform: "Binance",
-    },
-    // ai16z failure (mentioned in search)
-    {
-      agentId: "ai16z_fund",
-      agentName: "ai16z Fund Agent",
-      developer: "ai16z",
-      claimType: ClaimType.LOSS,
-      category: ClaimCategory.TRADING,
-      amountLost: 180000,
-      assetType: "Various",
-      chain: "solana",
-      title: "Failed to meet market expectations",
-      description: "Despite backing from a16z founder Marc Andreessen, ai16z failed to meet market expectations. Auto.fun platform underperformed.",
-      rootCause: "Market narrative shift, overconcentration in AI agent tokens",
-      platform: "auto.fun",
-    },
-    // ===== NEW INCIDENTS FROM BRAVE SEARCH =====
-    // Arup Deepfake Fraud (2024) - $25M loss via AI deepfake
+    // Arup Deepfake Fraud (2024)
     {
       agentId: "arup_finance_agent",
       agentName: "Arup Finance Verification Agent",
@@ -591,7 +635,7 @@ function seedData() {
       rootCause: "Insufficient verification of video call participants, AI-generated deepfakes bypassed visual verification",
       platform: "Traditional Banking",
     },
-    // Zerebro incident (mentioned in search)
+    // Zerebro incident
     {
       agentId: "zerebro_agent",
       agentName: "Zerebro",
@@ -606,37 +650,22 @@ function seedData() {
       rootCause: "Inadequate market volatility handling, no dynamic risk adjustment",
       platform: "Solana DEXs",
     },
-    // Agentic AI Ransomware (2025 emerging threat)
+    // ai16z failure
     {
-      agentId: "ransomware_agent_x",
-      agentName: "Compromised Enterprise Agent",
-      developer: "Unknown",
-      claimType: ClaimType.SECURITY,
-      category: ClaimCategory.SECURITY,
-      amountLost: 500000,
-      assetType: "USD",
-      chain: "traditional",
-      title: "Agentic AI turned into ransomware vector",
-      description: "Enterprise AI agent was compromised and used to deploy ransomware across corporate network. Autonomous capabilities were exploited to spread laterally and encrypt systems.",
-      rootCause: "Insufficient access controls on autonomous agent capabilities, no sandboxing",
-      platform: "Enterprise Systems",
+      agentId: "ai16z_fund",
+      agentName: "ai16z Fund Agent",
+      developer: "ai16z",
+      claimType: ClaimType.LOSS,
+      category: ClaimCategory.TRADING,
+      amountLost: 180000,
+      assetType: "Various",
+      chain: "solana",
+      title: "Failed to meet market expectations",
+      description: "Despite backing from a16z founder Marc Andreessen, ai16z failed to meet market expectations. Auto.fun platform underperformed.",
+      rootCause: "Market narrative shift, overconcentration in AI agent tokens",
+      platform: "auto.fun",
     },
-    // AI VW/Taco Bell failures (from search)
-    {
-      agentId: "vw_ai_system",
-      agentName: "VW AI Assistant",
-      developer: "Volkswagen",
-      claimType: ClaimType.ERROR,
-      category: ClaimCategory.COMMUNICATION,
-      amountLost: 150000,
-      assetType: "USD",
-      chain: "traditional",
-      title: "AI assistant provided incorrect technical guidance",
-      description: "VW's AI assistant provided incorrect technical guidance to customers, leading to warranty claims and service issues. Required manual review and correction.",
-      rootCause: "Training data gaps, insufficient domain expertise validation",
-      platform: "Customer Service",
-    },
-    // Virtuals protocol incident
+    // Virtuals protocol
     {
       agentId: "virtuals_trader",
       agentName: "Virtuals Protocol Agent",
@@ -655,7 +684,7 @@ function seedData() {
   
   for (const sample of samples) {
     const now = Date.now();
-    const daysAgo = Math.floor(Math.random() * 180); // Up to 6 months ago
+    const daysAgo = Math.floor(Math.random() * 180);
     const timestamp = now - (daysAgo * 24 * 60 * 60 * 1000);
     
     const claim: AgentClaim = {
@@ -676,36 +705,52 @@ function seedData() {
       rootCause: sample.rootCause,
       resolution: Resolution.PENDING,
       source: ClaimSource.SCRAPED,
-      verified: Math.random() > 0.3, // 70% verified
+      verified: Math.random() > 0.3,
       platform: sample.platform,
     };
     
     insertClaim(claim);
   }
   
-  console.log(`Seeded ${samples.length} claims from real incidents`);
+  console.log(`✅ Seeded ${samples.length} claims from real incidents`);
 }
 
 // ==================== START SERVER ====================
 
+// Validate configuration
+const validation = validateConfig();
+if (!validation.valid) {
+  console.error("❌ Configuration errors:");
+  validation.errors.forEach(e => console.error(`   - ${e}`));
+  if (config.nodeEnv === "production") {
+    process.exit(1);
+  }
+}
+
+printConfig();
+
+// Seed data on startup
 seedData();
 
-// Initialize auth
-initAuth();
-
+// Start server
 const server = serve({
-  port: 3399,
+  port: config.port,
+  hostname: config.host,
   fetch: handleRequest,
 });
 
 console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🛡️  ALLIGO - The Credit Bureau for AI Agents             ║
+║   🛡️  ALLIGO - The Credit Bureau for AI Agents           ║
 ║                                                           ║
-║   Server: http://localhost:3399                          ║
-║   Stats:  http://localhost:3399/api/stats                ║
-║   Docs:   http://localhost:3399/                         ║
+║   Server:  http://localhost:${config.port}                       ║
+║   Dashboard: http://localhost:${config.port}/                     ║
+║   API:      http://localhost:${config.port}/api                   ║
+║   Health:   http://localhost:${config.port}/health               ║
+║                                                           ║
+║   Database: ${config.databasePath.padEnd(42)}║
+║   Claims:   ${countClaims().toString().padEnd(42)}║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
 `);

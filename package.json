@@ -1,13 +1,15 @@
 {
   "name": "alligo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The Credit Bureau for AI Agents - Track failures, losses, and disputes",
   "main": "src/api/server.ts",
   "scripts": {
     "dev": "bun run src/api/server.ts",
     "start": "bun run src/api/server.ts",
     "ingest": "bun run src/ingestion/ingest-live.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "bun lint",
+    "db:init": "bun run -e \"console.log('Database initialized at ./data/alligo.db')\""
   },
   "keywords": [
     "ai-agents",
@@ -15,9 +17,19 @@
     "risk",
     "claims",
     "autonomous-agents",
-    "credit-bureau"
+    "credit-bureau",
+    "agent-risk",
+    "ai-failures"
   ],
   "author": "AlliGo",
   "license": "MIT",
-  "dependencies": {}
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spiritclawd/allimolt"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }
