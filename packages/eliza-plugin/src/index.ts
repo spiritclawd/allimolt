@@ -106,7 +106,7 @@ export class AlliGoClient {
         throw new Error(`AlliGo API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as AgentScore & { success: boolean };
       return data.success ? data : null;
     } catch (error) {
       console.error("AlliGo API error:", error);
@@ -137,7 +137,7 @@ export class AlliGoClient {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as { claims?: Claim[] };
       return data.claims || [];
     } catch (error) {
       console.error("AlliGo API error:", error);
@@ -227,7 +227,7 @@ export class AlliGoClient {
         body: JSON.stringify(claim),
       });
 
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; claimId?: string; error?: string };
       return data;
     } catch (error) {
       return {
