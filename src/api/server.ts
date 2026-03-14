@@ -47,6 +47,7 @@ import { handleLeadRoutes } from "../leads/routes";
 import { notifyNewClaim } from "../notifications/index";
 import { testTelegramConnection } from "../telegram/index";
 import { generateAgentReport, formatReportAsMarkdown } from "../reports/agent-report";
+import { x402Middleware, isX402Configured, getClientId, hasValidAccess, getPaymentStats, PAYMENT_TIERS } from "../payments/x402";
 
 // ==================== RISK SCORING ====================
 
@@ -625,30 +626,44 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({
       name: "AlliGo",
       description: "The Credit Bureau for AI Agents",
-      version: "0.2.0",
+      version: "0.3.0",
+      x402: {
+        enabled: isX402Configured(),
+        recipient: config.usdcRecipientAddress,
+      },
       endpoints: {
         "GET /": "Dashboard UI",
+        // Agent Reports (x402 protected)
+        "POST /api/report": "Full agent performance report (x402 payment or API key)",
+        "GET /api/public/report/:id": "Basic agent report (free, no auth)",
+        // Claims
         "POST /api/claims": "Submit a new claim",
         "GET /api/claims": "List all claims",
         "GET /api/claims?id=...": "Get specific claim",
         "GET /api/agents/:id/claims": "Get claims for an agent",
         "GET /api/agents/:id/score": "Get risk score for an agent",
         "GET /api/stats": "Get global statistics",
-        "GET /api/public/stats": "Public statistics (no auth)",
-        "GET /api/public/agents/:id/score": "Public agent score (no auth)",
-        "GET /api/badge/:id.svg": "Get agent badge (no auth)",
+        // Public endpoints (no auth)
+        "GET /api/public/stats": "Public statistics",
+        "GET /api/public/agents/:id/score": "Public agent score",
+        "GET /api/badge/:id.svg": "Get agent badge SVG",
+        // x402 Payment
+        "GET /api/payment/tiers": "Get available payment tiers (USDC)",
+        "GET /api/payment/status": "Check your payment/access status",
+        // Admin
         "POST /api/keys": "Create new API key (admin)",
         "GET /api/keys": "List API keys (admin)",
+        "GET /api/admin/payments": "Payment statistics (admin)",
         "GET /health": "Health check",
         "GET /legal/terms": "Terms of Service",
         "GET /legal/privacy": "Privacy Policy",
-        // Payment endpoints
+        // Stripe payments (legacy)
         "POST /api/payments/create-checkout-session": "Create Stripe checkout session",
         "POST /api/payments/webhook": "Stripe webhook handler",
         "GET /api/payments/subscription": "Get current subscription",
         "POST /api/payments/portal": "Create customer portal session",
         "GET /api/payments/plans": "Get available plans",
-        // Lead endpoints
+        // Leads
         "POST /api/leads": "Capture email from landing page (public)",
         "GET /api/leads": "List all leads (admin)",
         "GET /api/leads/stats": "Get lead statistics (admin)",
@@ -663,7 +678,13 @@ async function handleRequest(req: Request): Promise<Response> {
         "POST /api/newsletter/digest": "Send weekly digest (admin)",
         ...AUTH_ROUTES,
       },
-      auth: "Bearer <API_KEY> or session token required for protected endpoints",
+      auth: "Bearer <API_KEY> or X-Payment header for x402 payments",
+      payment: {
+        protocol: "x402",
+        asset: "USDC",
+        chains: ["base", "ethereum", "polygon", "arbitrum", "optimism", "solana"],
+        tiers: PAYMENT_TIERS,
+      },
     });
   }
   
@@ -672,7 +693,8 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ 
       status: "ok", 
       timestamp: Date.now(),
-      version: "0.2.0",
+      version: "0.3.0",
+      x402: isX402Configured(),
       database: config.databasePath,
       claims: countClaims(),
     });
@@ -742,7 +764,19 @@ async function handleRequest(req: Request): Promise<Response> {
   
   // Agent Report endpoint - Generate performance report for any agent ID
   // Supports 8004 protocol and other agent identification systems
+  // Requires x402 payment or valid API key
   if (path === "/api/report" && method === "POST") {
+    // Check for API key auth first
+    const authCheck = requireAuth(req, "read");
+    
+    // If no valid API key, check x402 payment
+    if (!authCheck.valid) {
+      const x402Check = await x402Middleware(req, "/api/report", "single_report");
+      if (!x402Check.allowed) {
+        return x402Check.response!;
+      }
+    }
+    
     try {
       const body = await req.json() as { agentId: string; protocol?: string; format?: string };
       
@@ -800,6 +834,45 @@ async function handleRequest(req: Request): Promise<Response> {
         shouldTransact: report.shouldTransact
       }
     });
+  }
+  
+  // Payment status endpoint - Check client's payment/access status
+  if (path === "/api/payment/status" && method === "GET") {
+    const clientId = getClientId(req);
+    const access = hasValidAccess(clientId);
+    
+    return json({
+      success: true,
+      clientId,
+      hasAccess: access.hasAccess,
+      remaining: access.remaining,
+      tier: access.record?.tier,
+      validUntil: access.record?.validUntil,
+      x402Enabled: isX402Configured(),
+    });
+  }
+  
+  // Payment tiers endpoint - Get available payment options
+  if (path === "/api/payment/tiers" && method === "GET") {
+    return json({
+      success: true,
+      x402Enabled: isX402Configured(),
+      recipientAddress: config.usdcRecipientAddress,
+      tiers: Object.entries(PAYMENT_TIERS).map(([key, tier]) => ({
+        id: key,
+        ...tier,
+        priceUsd: tier.priceUsdCents / 100,
+      })),
+    });
+  }
+  
+  // Admin payment stats
+  if (path === "/api/admin/payments" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    const stats = getPaymentStats();
+    return json({ success: true, ...stats });
   }
   
   return error("Not found", 404);
