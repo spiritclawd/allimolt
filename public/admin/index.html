@@ -171,6 +171,9 @@
         <div class="nav-item" onclick="showPage('settings')">
           ⚙️ Settings
         </div>
+        <div class="nav-item" onclick="logout()">
+          🚪 Logout
+        </div>
         <div class="nav-item" onclick="window.location.href='/'">
           ← Back to Site
         </div>
@@ -642,12 +645,99 @@
 
   <script>
     const API_BASE = window.location.origin + '/api';
-    let authToken = localStorage.getItem('admin_token') || 'dev_admin_key';
+    let authToken = null;
+    let isAuthenticated = false;
     
-    // Initialize
+    // Initialize - Check auth first
     document.addEventListener('DOMContentLoaded', () => {
-      loadDashboard();
+      const storedToken = localStorage.getItem('admin_token');
+      if (storedToken) {
+        authToken = storedToken;
+        verifyAuth();
+      } else {
+        showLoginModal();
+      }
     });
+    
+    // Show login modal
+    function showLoginModal() {
+      const loginHtml = `
+        <div class="modal-overlay" id="modal-login" style="display:flex;">
+          <div class="modal" style="width:400px;">
+            <div class="modal-header">
+              <span class="card-title">🔐 Admin Login</span>
+            </div>
+            <div class="modal-body">
+              <p style="color:var(--text-secondary);margin-bottom:1rem;">Enter your admin API key to access the dashboard.</p>
+              <div class="form-group">
+                <label class="form-label">Admin API Key</label>
+                <input type="password" class="form-input" id="login-key" placeholder="Your admin key..." onkeypress="if(event.key==='Enter')attemptLogin()">
+              </div>
+              <div id="login-error" style="color:var(--danger);display:none;margin-top:0.5rem;">Invalid API key. Please try again.</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="window.location.href='/'">Cancel</button>
+              <button class="btn btn-primary" onclick="attemptLogin()">Login</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', loginHtml);
+      setTimeout(() => document.getElementById('login-key').focus(), 100);
+    }
+    
+    // Attempt login
+    async function attemptLogin() {
+      const key = document.getElementById('login-key').value.trim();
+      if (!key) return;
+      
+      // Test auth by making a request
+      try {
+        const res = await fetch(API_BASE + '/stats', {
+          headers: { 'Authorization': 'Bearer ' + key }
+        });
+        const data = await res.json();
+        
+        if (data.success || res.ok) {
+          authToken = key;
+          localStorage.setItem('admin_token', key);
+          isAuthenticated = true;
+          document.getElementById('modal-login')?.remove();
+          loadDashboard();
+        } else {
+          document.getElementById('login-error').style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+    
+    // Verify stored auth
+    async function verifyAuth() {
+      try {
+        const res = await fetch(API_BASE + '/stats', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        const data = await res.json();
+        
+        if (data.success || res.ok) {
+          isAuthenticated = true;
+          loadDashboard();
+        } else {
+          localStorage.removeItem('admin_token');
+          showLoginModal();
+        }
+      } catch (e) {
+        localStorage.removeItem('admin_token');
+        showLoginModal();
+      }
+    }
+    
+    // Logout
+    function logout() {
+      localStorage.removeItem('admin_token');
+      window.location.reload();
+    }
     
     // Navigation
     function showPage(page) {
