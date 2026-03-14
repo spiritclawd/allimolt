@@ -43,6 +43,26 @@
       "endpoint": "/api/badge/{agentId}.svg",
       "method": "GET",
       "auth_required": false
+    },
+    {
+      "name": "generate_report",
+      "description": "Generate comprehensive performance report for any agent ID (supports 8004 protocol)",
+      "endpoint": "/api/report",
+      "method": "POST",
+      "auth_required": false,
+      "pricing": {
+        "model": "x402",
+        "asset": "USDC",
+        "network": "base",
+        "amount": "$1.00 per report"
+      }
+    },
+    {
+      "name": "public_report",
+      "description": "Get basic public report for an agent (no payment required)",
+      "endpoint": "/api/public/report/{agentId}",
+      "method": "GET",
+      "auth_required": false
     }
   ],
   "authentication": {

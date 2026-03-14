@@ -46,6 +46,7 @@ import { handlePaymentRoutes } from "../payments/routes";
 import { handleLeadRoutes } from "../leads/routes";
 import { notifyNewClaim } from "../notifications/index";
 import { testTelegramConnection } from "../telegram/index";
+import { generateAgentReport, formatReportAsMarkdown } from "../reports/agent-report";
 
 // ==================== RISK SCORING ====================
 
@@ -737,6 +738,68 @@ async function handleRequest(req: Request): Promise<Response> {
     
     const result = await testTelegramConnection();
     return json({ success: result.success, error: result.error });
+  }
+  
+  // Agent Report endpoint - Generate performance report for any agent ID
+  // Supports 8004 protocol and other agent identification systems
+  if (path === "/api/report" && method === "POST") {
+    try {
+      const body = await req.json() as { agentId: string; protocol?: string; format?: string };
+      
+      if (!body.agentId) {
+        return error("agentId is required", 400);
+      }
+      
+      const report = generateAgentReport({
+        agentId: body.agentId,
+        protocol: body.protocol || "default",
+        includeHistory: true,
+        format: (body.format as "json" | "markdown") || "json"
+      });
+      
+      // Return markdown if requested
+      if (body.format === "markdown") {
+        return new Response(formatReportAsMarkdown(report), {
+          headers: {
+            "Content-Type": "text/plain",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+      
+      return json({
+        success: true,
+        report
+      });
+    } catch (e) {
+      console.error("Error generating report:", e);
+      return error("Failed to generate report", 500);
+    }
+  }
+  
+  // Public Agent Report - No auth required, basic info only
+  if (path.startsWith("/api/public/report/") && method === "GET") {
+    const agentId = decodeURIComponent(path.replace("/api/public/report/", ""));
+    
+    const report = generateAgentReport({
+      agentId,
+      includeHistory: false
+    });
+    
+    // Return limited public view
+    return json({
+      success: true,
+      report: {
+        agentId: report.agentId,
+        grade: report.grade,
+        riskScore: report.riskScore,
+        riskLevel: report.riskLevel,
+        totalClaims: report.totalClaims,
+        totalValueLost: report.totalValueLost,
+        recommendation: report.recommendation,
+        shouldTransact: report.shouldTransact
+      }
+    });
   }
   
   return error("Not found", 404);

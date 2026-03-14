@@ -62,6 +62,11 @@ export interface Config {
   stripeEnterprisePriceId?: string;
   stripeBaseUrl: string;
 
+  // x402/USDC Payment Configuration
+  usdcRecipientAddress?: string;  // Wallet to receive USDC payments
+  usdcPricePerReport: string;     // Price in USDC cents (e.g., "100" = $1.00)
+  x402Enabled: boolean;
+
   // Feature Flags
   enableIngestion: boolean;
   enableDashboard: boolean;
@@ -114,6 +119,11 @@ export const config: Config = {
   stripeProPriceId: getEnv("STRIPE_PRO_PRICE_ID", "") || undefined,
   stripeEnterprisePriceId: getEnv("STRIPE_ENTERPRISE_PRICE_ID", "") || undefined,
   stripeBaseUrl: getEnv("STRIPE_BASE_URL", `http://localhost:${getEnvNumber("PORT", 3399)}`),
+
+  // x402/USDC Payment Configuration
+  usdcRecipientAddress: getEnv("USDC_RECIPIENT_ADDRESS", "") || undefined,
+  usdcPricePerReport: getEnv("USDC_PRICE_PER_REPORT", "100"), // Default $1.00 in cents
+  x402Enabled: getEnvBool("X402_ENABLED", true),
 
   // Feature Flags
   enableIngestion: getEnvBool("ENABLE_INGESTION", true),
