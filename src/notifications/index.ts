@@ -32,7 +32,7 @@ const defaultConfig: NotificationConfig = {
   email: true,
   webhooks: true,
   telegram: true,
-  minAmount: 10000,
+  minAmount: 1000, // Lowered to $1000 for testing
 };
 
 /**

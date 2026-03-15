@@ -767,6 +767,45 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ success: result.success, error: result.error });
   }
   
+  // Telegram status endpoint (public diagnostic)
+  if (path === "/api/telegram/status" && method === "GET") {
+    const hasToken = !!process.env.TELEGRAM_BOT_TOKEN;
+    const hasChannel = !!process.env.TELEGRAM_CHANNEL_ID;
+    
+    return json({
+      success: true,
+      configured: hasToken && hasChannel,
+      botTokenSet: hasToken,
+      channelSet: hasChannel,
+      channelId: hasChannel ? process.env.TELEGRAM_CHANNEL_ID?.substring(0, 10) + "..." : null,
+      message: hasToken && hasChannel 
+        ? "Telegram is configured. Use POST /api/admin/test-telegram with admin key to test."
+        : "Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL_ID env vars."
+    });
+  }
+  
+  // Telegram test with admin key (simple GET for easy browser testing)
+  if (path === "/api/admin/test-telegram" && method === "GET") {
+    // Check for admin key in query param for easy browser testing
+    const urlObj = new URL(req.url);
+    const adminKey = urlObj.searchParams.get("key");
+    
+    if (!adminKey || adminKey !== config.adminApiKey) {
+      return json({ 
+        success: false, 
+        error: "Unauthorized. Add ?key=YOUR_ADMIN_KEY to URL",
+        hint: "Get your admin key from Railway env: ADMIN_API_KEY"
+      }, 401);
+    }
+    
+    const result = await testTelegramConnection();
+    return json({ 
+      success: result.success, 
+      error: result.error,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
   // Agent Report endpoint - Generate performance report for any agent ID
   // Supports 8004 protocol and other agent identification systems
   // Requires x402 payment or valid API key
