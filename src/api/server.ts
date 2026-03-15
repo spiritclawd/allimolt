@@ -665,6 +665,10 @@ async function handleRequest(req: Request): Promise<Response> {
         "POST /api/forensics": "Deep on-chain forensics report (x402 payment or API key)",
         "GET /api/forensics/quick/:id": "Quick forensics check (lightweight)",
         "GET /api/forensics/badge/:id.svg": "Get forensics badge SVG",
+        // Agentic Internals - THE NEGATIVE-EVENT BUREAU
+        "POST /api/forensics/agentic": "Analyze agentic internals (CoT traces, tool calls, memory patterns) - THE MOAT",
+        "GET /api/forensics/agentic/:id": "Quick agentic check by agent ID",
+        "POST /api/forensics/agentic/batch": "Batch analyze up to 50 agents",
         // Claims
         "POST /api/claims": "Submit a new claim",
         "GET /api/claims": "List all claims",
@@ -1088,6 +1092,118 @@ async function handleRequest(req: Request): Promise<Response> {
       <!-- Agent ID (truncated) -->
       <text x="12" y="65" font-family="monospace" font-size="8" fill="#666">${agentId}...</text>
     </svg>`;
+  }
+  
+  // ==================== AGENTIC INTERNALS FORENSICS ====================
+  
+  // Agentic Internals Analysis - The Negative-Event Bureau
+  // Analyzes what agents THINK, PLAN, ATTEMPT, and HIDE
+  if (path === "/api/forensics/agentic" && method === "POST") {
+    const authCheck = requireAuth(req, "read");
+    
+    // Allow x402 payment as alternative
+    if (!authCheck.valid) {
+      const x402Check = await x402Middleware(req, "/api/forensics/agentic", "basic");
+      if (!x402Check.valid) {
+        return x402Check.response!;
+      }
+    }
+    
+    try {
+      const body = await req.json();
+      
+      // Import agentic internals engine
+      const { analyzeAgenticInternals, formatForensicsJSON, formatForensicsMarkdown } = await import("../forensics/agentic-internals");
+      
+      // Analyze the agentic data
+      const report = await analyzeAgenticInternals(body);
+      
+      // Return based on Accept header
+      const accept = req.headers.get("Accept") || "application/json";
+      if (accept.includes("markdown") || accept.includes("text/")) {
+        return new Response(formatForensicsMarkdown(report), {
+          headers: {
+            "Content-Type": "text/markdown",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+      
+      return json({
+        success: true,
+        report,
+        markdown: formatForensicsMarkdown(report)
+      });
+    } catch (e: any) {
+      console.error("Error in agentic internals analysis:", e);
+      return error("Failed to analyze agentic internals: " + e.message, 500);
+    }
+  }
+  
+  // Agentic Internals - Quick check by agent ID
+  if (path.startsWith("/api/forensics/agentic/") && method === "GET") {
+    const agentId = decodeURIComponent(path.replace("/api/forensics/agentic/", ""));
+    
+    try {
+      const { analyzeAgenticInternals, formatForensicsJSON } = await import("../forensics/agentic-internals");
+      
+      // Analyze with just the agent ID (no internal data provided)
+      const report = await analyzeAgenticInternals({ 
+        agent_handle: agentId 
+      });
+      
+      return json({
+        success: true,
+        report,
+        note: report.agent_summary.agentic_data_quality === "none" 
+          ? "No agentic internals provided. Upload CoT traces, tool calls, or memory snapshots for deeper analysis."
+          : undefined
+      });
+    } catch (e: any) {
+      console.error("Error in agentic quick analysis:", e);
+      return error("Failed to analyze agent internals: " + e.message, 500);
+    }
+  }
+  
+  // Agentic Internals - Batch analysis
+  if (path === "/api/forensics/agentic/batch" && method === "POST") {
+    const authCheck = requireAuth(req, "read");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    try {
+      const body = await req.json();
+      const agents = body.agents || [];
+      
+      if (!Array.isArray(agents) || agents.length === 0) {
+        return error("agents array required");
+      }
+      
+      if (agents.length > 50) {
+        return error("Maximum 50 agents per batch");
+      }
+      
+      const { analyzeAgenticInternals } = await import("../forensics/agentic-internals");
+      
+      const reports = await Promise.all(
+        agents.map((agent: any) => analyzeAgenticInternals(agent))
+      );
+      
+      return json({
+        success: true,
+        count: reports.length,
+        reports: reports.map(r => ({
+          agent: r.agent_summary.id,
+          grade: r.grade,
+          score: r.overall_risk_score,
+          risk_level: r.recurrence_forecast.risk_level,
+          top_archetype: r.behavioral_archetypes[0]?.archetype || null
+        })),
+        full_reports: body.include_full ? reports : undefined
+      });
+    } catch (e: any) {
+      console.error("Error in batch agentic analysis:", e);
+      return error("Failed to analyze agents: " + e.message, 500);
+    }
   }
   
   return error("Not found", 404);

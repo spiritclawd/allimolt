@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.daydreams.systems",
+    "name": "Lucid Agents Docs",
+    "snippet": "Verifiable Identity. On-chain identity and reputation. Domain binding and verifiable trust signals. Developer Experience. Ship a Paid Agent in Minutes.",
+    "host_name": "docs.daydreams.systems",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com/jacobsd32-cpu/44e316704e7c029e0850218880a13764",
+    "name": "DJD Agent Score — Quick Start Guide: Wallet reputation scoring for AI agents",
+    "snippet": "28 Feb 2026 — DJD Agent Score — Quick Start Guide. ## Wallet Reputation Scoring for AI Agents on Base. ### TL;DR. Score any wallet 0–100 in one API call.",
+    "host_name": "gist.github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.mexc.com/erc-8004-analysis-a-trust-infrastructure-for-ai-agents",
+    "name": "ERC-8004 Analysis A Trust Infrastructure For AI Agents",
+    "snippet": "18 Jan 2026 — ERC-8004 complements these systems by providing onchain identity and reputation. One handles communication, the other trust assessment.\nAdditionally, larger AI and agent ecosystems are beginning to integrate ERC-8004. Unibase has confirmed combining ERC-8004 identity and reputation with x402 payments. AltLayer references 8004scan as a discovery and scoring layer. Virtuals on Base is frequently cited as an ecosystem likely to support ERC-8004 to standardize agent trust and identity. 6. Conclusion ERC-8004 introduces a ...",
+    "host_name": "blog.mexc.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://8004agents.ai/bsc/agent/38561",
+    "name": "daydream - AI Agent on BNB Chain - ERC-8004 Explorer",
+    "snippet": "2 days ago — Explore ERC-8004 AI agents across multiple blockchain networks. View reputation scores, validations, and interact with verified agents on ...",
+    "host_name": "8004agents.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://x.com/DavideCrapis",
+    "name": "Davide Crapis (@DavideCrapis) / Posts / X",
+    "snippet": "ERC-8004 is the standard for universal AI agent identity, reputation, and verification. Before this standard, agent-to-agent commerce was ...",
+    "host_name": "x.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.binance.com/en-IN/square/post/35760330139249",
+    "name": "These people and projects are the focus of ERC-8004",
+    "snippet": "29 Jan 2026 — These agents natively support the x402 payment protocol and ERC-8004 identity standard, enabling automatic trading and collaboration between ...",
+    "host_name": "www.binance.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2505.19301v1",
+    "name": "A Novel Zero-Trust Identity Framework for Agentic AI: Decentralized Authentication and Fine-Grained Access Control",
+    "snippet": "25 May 2025 — A comprehensive framework built upon rich, verifiable Agent Identities (IDs), leveraging Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs).",
+    "host_name": "arxiv.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/daydreamsai/daydreams",
+    "name": "Daydreams is a set of tools for building agents for commerce",
+    "snippet": "Result: Your agent seamlessly combines customer support, analytics tracking, and premium features in a single conversation. No manual integration required.",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.bankless.com/read/erc-8004-the-machine-economys-missing-piece",
+    "name": "ERC-8004: AI's Social Credit Score",
+    "snippet": "9 Jan 2026 — ERC-8004 launches January 16th, bringing onchain identity and reputation to autonomous agents. The machine economy's trust layer is here.",
+    "host_name": "www.bankless.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/daydreamsai/lucid-agents",
+    "name": "GitHub - daydreamsai/lucid-agents: Lucid Agents Commerce SDK",
+    "snippet": "Lucid Agents is a TypeScript-first framework for building and monetizing AI agents. An agentic commerce and payments SDK. Build AI agents that sell services, facilitate monetary transactions, and participate in agent-to-agent marketplaces. Core Capabilities: Industry-Standard Protocols: Native support for x402 (payments), A2A (agent-to-agent communication), and ERC-8004 (onchain identity ...",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

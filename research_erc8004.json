@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://blog.quicknode.com/erc-8004-a-developers-guide-to-trustless-ai-agent-identity",
+    "name": "ERC-8004: A Developer's Guide to Trustless AI Agent Identity",
+    "snippet": "Mar 4, 2026 — ERC-8004 is Ethereum's identity standard for AI agents . Learn how its onchain registries enable discovery, reputation, and trust.",
+    "host_name": "blog.quicknode.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/data-science-collective/introduction-to-erc-8004-the-trust-layer-for-ai-agents-a75da66aaf80",
+    "name": "Introduction to ERC-8004: The Trust Layer for AI Agents",
+    "snippet": "ERC-8004 creates a public discovery and trust layer for autonomous AI agents through three lightweight on-chain registries: Identity, ...",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tatum.io/blog/erc-8004",
+    "name": "ERC‑8004: The \"ID Card\" for Autonomous AI Agents",
+    "snippet": "Feb 26, 2026 — Explore how ERC-8004 provides a portable identity for AI agents and how Tatum's infrastructure bridges the gap between cryptographic trust ...",
+    "host_name": "tatum.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://8004agents.ai/news/erc-8004-ai-agent-standard-expands-to-solana-blockchain-mmam6krr",
+    "name": "ERC-8004 AI Agent Standard Expands to Solana",
+    "snippet": "Mar 3, 2026 — Explore ERC-8004 AI agents across multiple blockchain networks . View reputation scores, validations, and interact with verified agents on ...",
+    "host_name": "8004agents.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ens.domains/blog/post/ens-ai-agent-erc8004",
+    "name": "The Identity Problem in Agentic Commerce: How ENS Can",
+    "snippet": "Jan 22, 2026 — ERC - 8004 responds to this by introducing a standardized , onchain trust framework made of three registries: Identity , Reputation, and Validation.",
+    "host_name": "ens.domains",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://learn.backpack.exchange/articles/erc-8004-explained",
+    "name": "ERC-8004 Explained: Ethereum's AI Agent Standard Guide",
+    "snippet": "Complete guide to ERC-8004, Ethereum's revolutionary standard for trustless AI agents . Learn how Identity, Reputation & Validation registries power Web3 AI.",
+    "host_name": "learn.backpack.exchange",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.binance.com/en/square/post/35747717173129",
+    "name": "Ethereum Introduces ERC-8004 Standard for AI Agent",
+    "snippet": "Jan 29, 2026 — According to NS3. AI , this new standard seeks to tackle trust issues as AI agents move into production deployments involving real transactions, ...",
+    "host_name": "www.binance.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cryptorank.io/news/feed/53277-ethereum-introduces-erc-8004-standard-for-ai-agent-identity-and-reputation-systems",
+    "name": "Ethereum Introduces ERC-8004 Standard for AI Agent",
+    "snippet": "Feb 5, 2026 — The standard provides infrastructure enabling AI agents to locate each other , evaluate reputations, request and compensate for services, and ...",
+    "host_name": "cryptorank.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.tradingview.com/news/u_today:e7ba41fd6094b:0-ethereum-meets-ai-agents-what-is-erc-8004",
+    "name": "Ethereum Meets AI Agents: What Is ERC-8004?",
+    "snippet": "Jan 10, 2026 — With ERC-8004, Ethereum ETHUSD will finally become AI-ready in terms of tech context and economical behavior. This EIP brings agentic economy to ...",
+    "host_name": "www.tradingview.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://eips.ethereum.org/EIPS/eip-8004",
+    "name": "ERC-8004: Trustless Agents",
+    "snippet": "The Identity Registry uses ERC-721 with the URIStorage extension for agent registration, making all agents immediately browsable and transferable with NFTs-compliant apps.",
+    "host_name": "eips.ethereum.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

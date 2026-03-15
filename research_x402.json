@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://solana.com/x402/what-is-x402",
+    "name": "What is x402? | Payment Protocol for AI Agents on Solana",
+    "snippet": "Learn how x402 enables AI agents to make internet-native payments with the HTTP 402 status code. Discover why developers choose Solana's speed and low fees ...",
+    "host_name": "solana.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/coinbase/x402",
+    "name": "coinbase/x402: A payments protocol for the internet. Built",
+    "snippet": "HTTP / Transport Native: x402 is meant to seamlessly complement existing data transportation. It should whenever possible not mandate additional requests ... Read more\nThe following outlines the flow of a payment using the x402 protocol. Note that steps (1) and (2) are optional if the client already knows the payment details accepted for a resource.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.x402.org/ecosystem",
+    "name": "Ecosystem",
+    "snippet": "Real-time risk control for AI -driven x402 payments . x402 -secure is specifically designed for transactions involving autonomous AI agents . It transparently ... Read more",
+    "host_name": "www.x402.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.cdp.coinbase.com/x402/welcome",
+    "name": "Welcome to x402 - Coinbase Developer Documentation",
+    "snippet": "x402 is a new open payment protocol developed by Coinbase that enables instant, automatic stablecoin payments directly over HTTP . Read more\nBuyers: Human developers and AI agents seeking to access paid services without accounts or manual payment flows. Both sellers and buyers interact directly through HTTP requests, with payment handled transparently through the protocol.",
+    "host_name": "docs.cdp.coinbase.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lablab.ai/tech/coinbase/x402",
+    "name": "x402",
+    "snippet": "x402 is an HTTP -native payment protocol that enables AI agents to make programmatic payments without accounts or credit cards, turning HTTP 402 into a ...",
+    "host_name": "lablab.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.x402.org",
+    "name": "x402 - Payment Required | Internet-Native Payments Standard",
+    "snippet": "x402 is the internet's payment standard. An open standard for internet-native payments that empowers agentic payments at scale. Build a more free and fair ...",
+    "host_name": "www.x402.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/caerlower/x402-a-web-native-payment-protocol-for-micropayments-and-autonomous-agents-1g39",
+    "name": "x402: A Web-Native Payment Protocol for Micropayments",
+    "snippet": "24 Nov 2025 — For decades, the web has had an unused HTTP status code: 402 – Payment Required. It was reserved for a future in which servers could charge ... Read more",
+    "host_name": "dev.to",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cfotech.ca/story/explainer-how-will-ai-agents-pay-each-other-using-the-x402-payments-protocol",
+    "name": "Explainer: How will AI Agents pay each other using the",
+    "snippet": "4 Dec 2025 — The x402 protocol revives HTTP 402 , enabling AI agents to make instant micropayments autonomously using crypto, transforming digital ...",
+    "host_name": "cfotech.ca",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://simplescraper.io/blog/x402-payment-protocol",
+    "name": "How to x402: The Complete Guide to the AI Agent Payment",
+    "snippet": "16 Feb 2026 — x402 , a protocol built on top of HTTP 402 , makes per-request payments work via US dollar pegged stablecoins. Agents request resources, the ... Read more",
+    "host_name": "simplescraper.io",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.x402.org/x402-whitepaper.pdf",
+    "name": "x402: The Payment Protocol for Agentic Commerce",
+    "snippet": "The x402 protocol utilizes the long-reserved HTTP 402 ”Payment Required” status code to require a payment to complete an API request or load a webpage. If an API request lacks payment, x402 responds with an HTTP 402 Payment Required status, prompting the client to pay and retry.",
+    "host_name": "www.x402.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

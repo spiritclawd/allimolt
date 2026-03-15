@@ -676,7 +676,7 @@
     }
     
     .claim-card.blurred::after {
-      content: '🔒 UNLOCK WITH $1 USDC';
+      content: '\1F512 UNLOCK WITH $1 USDC';
       position: absolute;
       inset: 0;
       display: flex;
@@ -688,6 +688,178 @@
       color: var(--accent);
       filter: none;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .claim-card.blurred:hover::after {
+      background: rgba(0, 255, 136, 0.2);
+    }
+    
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    
+    .modal-content {
+      background: var(--bg-card);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      position: relative;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      font-size: 2rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    
+    .modal-close:hover { color: var(--accent); }
+    
+    .modal-content h2 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .modal-subtitle {
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+    
+    .payment-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .payment-step {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-primary);
+      border-radius: 8px;
+    }
+    
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: var(--bg-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    .step-content h4 {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .step-content p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .code-block {
+      background: #000;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+    }
+    
+    .code-block code {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+    
+    .code-note {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-style: italic;
+    }
+    
+    .supported-chains {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .chain-badge {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+    
+    .modal-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.5rem 0;
+    }
+    
+    .modal-content h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .client-info {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .manual-steps {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      padding-left: 1.5rem;
+    }
+    
+    .manual-steps li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .modal-footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .modal-footer a {
+      color: var(--accent);
     }
     
     .claim-rank {
@@ -836,6 +1008,91 @@
     </div>
   </section>
 
+  <!-- x402 Payment Modal -->
+  <div id="x402-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeX402Modal()">&times;</span>
+      <h2>Unlock Full Access with x402</h2>
+      <p class="modal-subtitle">Pay $1 USDC via HTTP 402 to unlock all claims</p>
+      
+      <div class="payment-steps">
+        <div class="payment-step">
+          <div class="step-icon">1</div>
+          <div class="step-content">
+            <h4>Get Your API Key</h4>
+            <p>Enter your email above and we'll send you a free API key. Or use x402 directly:</p>
+          </div>
+        </div>
+        
+        <div class="payment-step">
+          <div class="step-icon">2</div>
+          <div class="step-content">
+            <h4>Make an x402 Request</h4>
+            <div class="code-block">
+              <code>curl https://api.alligo.io/api/v1/claims \<br>
+  -H "Accept: application/json"</code>
+            </div>
+            <p class="code-note">Server responds with HTTP 402 + payment details</p>
+          </div>
+        </div>
+        
+        <div class="payment-step">
+          <div class="step-icon">3</div>
+          <div class="step-content">
+            <h4>Pay with USDC</h4>
+            <p>Client auto-pays $1 USDC on Base/Ethereum/Polygon via x402 protocol</p>
+            <div class="supported-chains">
+              <span class="chain-badge">Base</span>
+              <span class="chain-badge">Ethereum</span>
+              <span class="chain-badge">Polygon</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="payment-step">
+          <div class="step-icon">4</div>
+          <div class="step-content">
+            <h4>Receive Data</h4>
+            <p>Request completes automatically with full claims data</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-divider"></div>
+      
+      <h3>Using x402-Enabled Clients</h3>
+      <p class="client-info">If you have an x402-compatible client (like Coinbase's x402-fetch), payment happens automatically:</p>
+      
+      <div class="code-block">
+        <code>import { x402Fetch } from '@coinbase/x402';<br><br>
+const response = await x402Fetch('https://api.alligo.io/api/v1/claims');<br>
+const claims = await response.json();<br>
+// Payment handled automatically!</code>
+      </div>
+      
+      <div class="modal-divider"></div>
+      
+      <h3>Manual Payment Flow</h3>
+      <p class="client-info">Without an x402 client, follow these steps:</p>
+      
+      <ol class="manual-steps">
+        <li>Request returns HTTP 402 with payment details in body</li>
+        <li>Send $1 USDC to the payment address provided</li>
+        <li>Include transaction hash in retry request</li>
+        <li>Access granted for 24 hours</li>
+      </ol>
+      
+      <div class="modal-actions">
+        <a href="https://docs.cdp.coinbase.com/x402/welcome" target="_blank" class="btn btn-secondary">x402 Documentation</a>
+        <a href="https://github.com/coinbase/x402" target="_blank" class="btn btn-secondary">GitHub SDK</a>
+      </div>
+      
+      <div class="modal-footer">
+        <p>Questions? <a href="https://t.me/alligo_alerts">Ask in Telegram</a></p>
+      </div>
+    </div>
+  </div>
+  
   <!-- Claims Leaderboard - The Hook -->
   <section class="claims-leaderboard" id="leaderboard">
     <h2>💸 Agent Failure Leaderboard</h2>
@@ -951,7 +1208,7 @@
     <!-- Unlock CTA -->
     <div class="unlock-cta">
       <p>🔒 <strong>19 more claims</strong> in our database. Unlock full access to see all incidents, root causes, and risk scores.</p>
-      <a href="/api-docs" class="btn">Get API Access — $1 USDC</a>
+      <button onclick="openX402Modal()" class="btn" style="background: var(--accent); color: var(--bg-primary); border: none; cursor: pointer;">Unlock with x402 — $1 USDC</button>
     </div>
   </section>
 
@@ -1335,6 +1592,50 @@ if (score.grade === 'F' || score.grade === 'D') {
         }
       })
       .catch(() => {});
+    
+    // ==================== x402 Payment Modal ====================
+    
+    function openX402Modal() {
+      document.getElementById('x402-modal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeX402Modal() {
+      document.getElementById('x402-modal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    
+    // Close modal on background click
+    document.getElementById('x402-modal')?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeX402Modal();
+      }
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeX402Modal();
+      }
+    });
+    
+    // Make blurred cards clickable to open modal
+    document.querySelectorAll('.claim-card.blurred').forEach(card => {
+      card.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openX402Modal();
+      });
+    });
+    
+    // Hero form submit handler
+    function handleHeroSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const button = form.querySelector('button');
+      return submitForm('/leads', formData, 'hero-message', button);
+    }
   </script>
 </body>
 </html>
