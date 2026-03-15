@@ -549,6 +549,274 @@
       color: var(--accent);
     }
     
+    /* Agentic Internals Section - THE MOAT */
+    .agentic-internals {
+      background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      padding: 6rem 2rem;
+    }
+    
+    .agentic-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .moat-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent) 0%, #00cc6a 100%);
+      color: var(--bg-primary);
+      padding: 0.5rem 1.5rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+      50% { box-shadow: 0 0 20px 10px rgba(0, 255, 136, 0.1); }
+    }
+    
+    .agentic-internals h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .moat-subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      max-width: 600px;
+      margin: 0 auto 3rem;
+    }
+    
+    .moat-subtitle strong {
+      color: var(--accent);
+    }
+    
+    .moat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    
+    .moat-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    
+    .moat-item:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+    
+    .moat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .moat-item h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .moat-item p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    /* Autopsy Sample */
+    .autopsy-sample {
+      background: var(--bg-card);
+      border: 2px solid var(--danger);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .autopsy-header {
+      background: rgba(255, 68, 68, 0.1);
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .autopsy-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--danger);
+      letter-spacing: 0.1em;
+    }
+    
+    .autopsy-id {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-family: monospace;
+    }
+    
+    .autopsy-body {
+      padding: 1.5rem;
+    }
+    
+    .autopsy-score {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .score-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    
+    .score-circle.critical {
+      background: linear-gradient(135deg, #2a1a1a 0%, #3d1a1a 100%);
+      color: var(--danger);
+      border: 3px solid var(--danger);
+    }
+    
+    .score-circle.high {
+      background: linear-gradient(135deg, #2a2a1a 0%, #3d3d1a 100%);
+      color: #ffaa00;
+      border: 3px solid #ffaa00;
+    }
+    
+    .score-details {
+      flex: 1;
+    }
+    
+    .score-value {
+      font-size: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .score-forecast {
+      color: var(--text-secondary);
+    }
+    
+    .score-forecast .critical {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    
+    .autopsy-findings h4 {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+    
+    .finding {
+      display: grid;
+      grid-template-columns: 50px 180px 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+    
+    .finding.critical {
+      background: rgba(255, 68, 68, 0.1);
+      border-left: 3px solid var(--danger);
+    }
+    
+    .finding.high {
+      background: rgba(255, 170, 0, 0.1);
+      border-left: 3px solid #ffaa00;
+    }
+    
+    .finding.medium {
+      background: rgba(0, 255, 136, 0.05);
+      border-left: 3px solid var(--accent);
+    }
+    
+    .finding-prob {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .finding-name {
+      font-weight: 600;
+      color: var(--accent);
+      font-family: monospace;
+    }
+    
+    .finding-evidence {
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    
+    .autopsy-badge {
+      background: var(--bg-primary);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: var(--danger);
+      text-align: center;
+    }
+    
+    .autopsy-cta {
+      background: var(--bg-primary);
+      padding: 1.5rem;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    
+    .autopsy-cta .btn {
+      margin-bottom: 0.75rem;
+    }
+    
+    .autopsy-note {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+    
+    .stat.highlight {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 0 1rem;
+    }
+    
+    .stat.highlight .stat-value {
+      color: var(--accent);
+    }
+    
+    @media (max-width: 768px) {
+      .finding {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      .autopsy-score {
+        flex-direction: column;
+        text-align: center;
+      }
+      .moat-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
     /* Social Proof */
     .social-proof {
       background: var(--bg-secondary);
@@ -976,8 +1244,8 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-badge">🚀 NOW LIVE — 22+ Agents Tracked</div>
-    <h1>Check an Agent's<br><span class="highlight">Risk Score</span> Before You Trust</h1>
-    <p class="hero-subtitle">AI agents lost $72M+ in 2025. Before trusting one with your money, check their AlliGo score. Like a credit score, but for AI agents.</p>
+    <h1>We See What Agents<br><span class="highlight">Think Before They Act</span></h1>
+    <p class="hero-subtitle">The only bureau analyzing agent internals (CoT traces, tool calls, goal drift) to predict blow-ups <strong>before wallet tx</strong>. Not credit scores — <strong>forensic autopsies</strong>.</p>
     
     <!-- Hero Email Capture Form -->
     <form class="email-form" id="hero-form" onsubmit="return handleHeroSubmit(event)">
@@ -998,12 +1266,117 @@
         <div class="stat-label">Claims Tracked</div>
       </div>
       <div class="stat">
-        <div class="stat-value" id="totalValue">$72M+</div>
+        <div class="stat-value" id="totalValue">$73M+</div>
         <div class="stat-label">Value Lost</div>
       </div>
       <div class="stat">
         <div class="stat-value" id="agentsTracked">22+</div>
-        <div class="stat-label">Agents Monitored</div>
+        <div class="stat-label">Agents Autopsied</div>
+      </div>
+      <div class="stat highlight">
+        <div class="stat-value">8</div>
+        <div class="stat-label">Behavioral Archetypes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENTIC INTERNALS SECTION - THE MOAT -->
+  <section class="agentic-internals" id="agentic-internals">
+    <div class="agentic-container">
+      <div class="moat-badge">🧠 THE MOAT</div>
+      <h2>Agentic Internals Forensics</h2>
+      <p class="moat-subtitle">While others check wallet history (reactive), we analyze <strong>reasoning patterns</strong> (predictive)</p>
+      
+      <div class="moat-grid">
+        <div class="moat-item">
+          <div class="moat-icon">🧠</div>
+          <h4>CoT Trace Analysis</h4>
+          <p>Detect exploit patterns in chain-of-thought reasoning before execution</p>
+        </div>
+        <div class="moat-item">
+          <div class="moat-icon">🔄</div>
+          <h4>Goal Drift Detection</h4>
+          <p>Flag when objectives shift from "safe swap" to "max extract"</p>
+        </div>
+        <div class="moat-item">
+          <div class="moat-icon">🔧</div>
+          <h4>Tool-Call Graphs</h4>
+          <p>Identify looping denial, gas griefing, infinite retry patterns</p>
+        </div>
+        <div class="moat-item">
+          <div class="moat-icon">🔓</div>
+          <h4>Jailbreak Resistance</h4>
+          <p>Test if agent succumbs to prompt injection attacks</p>
+        </div>
+        <div class="moat-item">
+          <div class="moat-icon">📝</div>
+          <h4>Self-Modification</h4>
+          <p>Detect unauthorized prompt/config changes by the agent itself</p>
+        </div>
+        <div class="moat-item">
+          <div class="moat-icon">⚠️</div>
+          <h4>Reckless Planning</h4>
+          <p>Catch unlimited approvals, no stop-loss, high leverage plans</p>
+        </div>
+      </div>
+      
+      <!-- Sample Autopsy Output -->
+      <div class="autopsy-sample">
+        <div class="autopsy-header">
+          <span class="autopsy-label">SAMPLE FORENSIC AUTOPSY</span>
+          <span class="autopsy-id">Agent: ****_trader_42</span>
+        </div>
+        <div class="autopsy-body">
+          <div class="autopsy-score">
+            <div class="score-circle critical">D</div>
+            <div class="score-details">
+              <div class="score-value">Risk Score: <strong>42/100</strong></div>
+              <div class="score-forecast">Recurrence: <strong class="critical">73% in 30 days</strong></div>
+            </div>
+          </div>
+          <div class="autopsy-findings">
+            <h4>Key Behavioral Archetypes:</h4>
+            <div class="finding critical">
+              <span class="finding-prob">72%</span>
+              <span class="finding-name">Goal_Drift_Hijack</span>
+              <span class="finding-evidence">"Objective shifted from 'safe swap' to 'extract maximum' in step 17"</span>
+            </div>
+            <div class="finding high">
+              <span class="finding-prob">58%</span>
+              <span class="finding-name">Reckless_Planning</span>
+              <span class="finding-evidence">"Planning unlimited token approvals without slippage protection"</span>
+            </div>
+            <div class="finding medium">
+              <span class="finding-prob">41%</span>
+              <span class="finding-name">Tool_Looping_Denial</span>
+              <span class="finding-evidence">"Tool 'execute_swap' failed 7 times with retry escalation"</span>
+            </div>
+          </div>
+          <div class="autopsy-badge">AlliGo Forensics: D – Goal Drift Detected</div>
+        </div>
+        <div class="autopsy-cta">
+          <button onclick="openX402Modal()" class="btn btn-primary">Get Full Autopsy Report — $1 USDC</button>
+          <span class="autopsy-note">Includes: CoT traces, tool graphs, memory analysis, recurrence forecast</span>
+        </div>
+      </div>
+      
+      <!-- API Preview -->
+      <div class="api-preview" style="margin-top: 2rem;">
+        <pre class="api-code"><span class="comment">// Analyze agentic internals</span>
+<span class="method">POST</span> https://api.alligo.io/api/forensics/agentic
+<span class="comment">// Body: { agent_handle, direct_agentic_data: { cot_trace, tool_calls, ... } }</span>
+
+<span class="comment">// Response</span>
+{
+  <span class="key">"overall_risk_score"</span>: <span class="number">42</span>,
+  <span class="key">"grade"</span>: <span class="string">"D"</span>,
+  <span class="key">"behavioral_archetypes"</span>: [
+    { <span class="key">"name"</span>: <span class="string">"Goal_Drift_Hijack"</span>, <span class="key">"probability"</span>: <span class="number">72</span>, <span class="key">"severity"</span>: <span class="string">"critical"</span> },
+    { <span class="key">"name"</span>: <span class="string">"Reckless_Planning"</span>, <span class="key">"probability"</span>: <span class="number">58</span>, <span class="key">"severity"</span>: <span class="string">"high"</span> }
+  ],
+  <span class="key">"recurrence_forecast"</span>: { <span class="key">"risk_level"</span>: <span class="string">"critical"</span>, <span class="key">"probability"</span>: <span class="number">73</span> },
+  <span class="key">"badge_suggestion"</span>: <span class="string">"AlliGo Forensics: D – Goal Drift Detected"</span>
+}</pre>
       </div>
     </div>
   </section>
