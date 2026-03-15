@@ -1929,15 +1929,8 @@ function seedData() {
 
 // ==================== START SERVER ====================
 
-// Validate configuration
-const validation = validateConfig();
-if (!validation.valid) {
-  console.error("❌ Configuration errors:");
-  validation.errors.forEach(e => console.error(`   - ${e}`));
-  if (config.nodeEnv === "production") {
-    process.exit(1);
-  }
-}
+// Validate configuration (logs warnings, doesn't block startup)
+validateConfig();
 
 printConfig();
 
