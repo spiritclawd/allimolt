@@ -1467,18 +1467,8 @@ const server = serve({
   fetch: handleRequest,
 });
 
-console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   🛡️  ALLIGO - The Credit Bureau for AI Agents           ║
-║                                                           ║
-║   Server:  http://localhost:${config.port}                       ║
-║   Dashboard: http://localhost:${config.port}/                     ║
-║   API:      http://localhost:${config.port}/api                   ║
-║   Health:   http://localhost:${config.port}/health               ║
-║                                                           ║
-║   Database: ${config.databasePath.padEnd(42)}║
-║   Claims:   ${countClaims().toString().padEnd(42)}║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-`);
+console.log("🛡️  AlliGo Server Started");
+console.log("   Port: " + config.port);
+console.log("   Database: " + config.databasePath);
+console.log("   Claims: " + countClaims());
+console.log("");
