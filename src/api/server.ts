@@ -627,7 +627,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({
       name: "AlliGo",
       description: "The Credit Bureau for AI Agents",
-      version: "0.3.0",
+      version: "0.4.0",
       x402: {
         enabled: isX402Configured(),
         recipient: config.usdcRecipientAddress,
@@ -698,7 +698,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ 
       status: "ok", 
       timestamp: Date.now(),
-      version: "0.3.0",
+      version: "0.4.0",
       x402: isX402Configured(),
       database: config.databasePath,
       claims: countClaims(),
