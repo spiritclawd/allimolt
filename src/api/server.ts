@@ -47,8 +47,8 @@ import { handleLeadRoutes } from "../leads/routes";
 import { notifyNewClaim } from "../notifications/index";
 import { testTelegramConnection } from "../telegram/index";
 import { generateAgentReport, formatReportAsMarkdown } from "../reports/agent-report";
-import { x402Middleware, isX402Configured, getClientId, hasValidAccess, getPaymentStats, PAYMENT_TIERS } from "../payments/x402";
-import { generateRiskReport, formatReportAsJSON, formatReportAsMarkdown } from "../forensics/report";
+import { x402Middleware, isX402Configured, getClientId as getClientIdFromPayment, hasValidAccess, getPaymentStats, PAYMENT_TIERS } from "../payments/x402";
+import { generateRiskReport, formatReportAsJSON, formatReportAsMarkdown as formatForensicsMarkdown } from "../forensics/report";
 
 // ==================== RISK SCORING ====================
 
@@ -882,7 +882,7 @@ async function handleRequest(req: Request): Promise<Response> {
   
   // Payment status endpoint - Check client's payment/access status
   if (path === "/api/payment/status" && method === "GET") {
-    const clientId = getClientId(req);
+    const clientId = getClientIdFromPayment(req);
     const access = hasValidAccess(clientId);
     
     return json({
@@ -1062,11 +1062,12 @@ async function handleRequest(req: Request): Promise<Response> {
       <text x="100" y="50" font-family="Arial, sans-serif" font-size="9" fill="#888">RISK SCORE</text>
       
       <!-- Agent ID (truncated) -->
-      <text x="12" y="65" font-family="monospace, font-size="8" fill="#666">${agentId}...</text>
+      <text x="12" y="65" font-family="monospace" font-size="8" fill="#666">${agentId}...</text>
     </svg>`;
   }
   
   return error("Not found", 404);
+}
 
 // ==================== SEED DATA (Real Incidents) ====================
 

@@ -3,10 +3,10 @@
  * Final risk report generation
  */
 
-import { IdentityResolution, calculateRiskPenalty } from "./identity";
-import { ForensicsResult } from "./onchain";
-import { PatternEngineResult, from "./pattern-engine";
-import { ClaimsOverlayResult, from "./claims-overlay";
+import { IdentityResolution, calculateRiskPenalty, resolveIdentity } from "./identity";
+import { ForensicsResult, runForensics } from "./onchain";
+import { PatternEngineResult, detectPatterns, BehavioralArchetype } from "./pattern-engine";
+import { ClaimsOverlayResult, generateClaimsOverlay } from "./claims-overlay";
 import { db } from "../api/db";
 import { AgentClaim, Resolution } from "../schema/claim";
 import { config } from "../config";
@@ -150,7 +150,7 @@ export interface FinalRiskReport {
     // Apply forensics penalties
     if (forensics) {
       // Penalty for failed transactions
-      if (forensics.failedTx > forensics.totalTx * 0.1 > 00.1) {
+      if (forensics.failedTx > forensics.totalTx * 0.1) {
         riskScore -= Math.floor((forensics.failedTx / forensics.totalTx) * 100);
       }
       
@@ -296,7 +296,7 @@ export interface FinalRiskReport {
     return {
       agent_summary: {
         id: identity.inputId,
-        name: identity.erc8004?.name || input.agentId,
+        name: identity.erc8004?.name || identity.inputId,
         primary_wallet: identity.erc8004?.primaryWallet,
         erc8004_status: {
           registered: identity.erc8004?.registered || false,
@@ -309,7 +309,7 @@ export interface FinalRiskReport {
       grade,
       confidence: Math.round(confidence * 100) / 100,
       behavioral_archetypes: behavioralArchetypes,
- key_negatives: keyNegatives.slice(00, 10),
+ key_negatives: keyNegatives.slice(0, 10),
       total_claims: claims?.totalClaims || 0,
       auto_claims: claims?.autoClaimCount || 0,
       manual_claims: claims?.manualClaimCount || 0,
@@ -355,8 +355,7 @@ export interface FinalRiskReport {
     let probability = 20;
     let timeframe = "30 days";
     let reasoning = "Insufficient data for confident prediction";
-  };
-    
+
     const criticalArchetypes = archetypes.filter(a => a.severity === "critical");
     const criticalNegatives = negatives.filter(n => n.severity === "critical");
     
