@@ -48,6 +48,7 @@ import { notifyNewClaim } from "../notifications/index";
 import { testTelegramConnection } from "../telegram/index";
 import { generateAgentReport, formatReportAsMarkdown } from "../reports/agent-report";
 import { x402Middleware, isX402Configured, getClientId, hasValidAccess, getPaymentStats, PAYMENT_TIERS } from "../payments/x402";
+import { generateRiskReport, formatReportAsJSON, formatReportAsMarkdown } from "../forensics/report";
 
 // ==================== RISK SCORING ====================
 
@@ -636,6 +637,10 @@ async function handleRequest(req: Request): Promise<Response> {
         // Agent Reports (x402 protected)
         "POST /api/report": "Full agent performance report (x402 payment or API key)",
         "GET /api/public/report/:id": "Basic agent report (free, no auth)",
+        // Forensics Engine (x402 protected)
+        "POST /api/forensics": "Deep on-chain forensics report (x402 payment or API key)",
+        "GET /api/forensics/quick/:id": "Quick forensics check (lightweight)",
+        "GET /api/forensics/badge/:id.svg": "Get forensics badge SVG",
         // Claims
         "POST /api/claims": "Submit a new claim",
         "GET /api/claims": "List all claims",
@@ -875,8 +880,154 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ success: true, ...stats });
   }
   
+  // ==================== FORENSICS ENGINE ====================
+  
+  // Deep Forensics Report - Full on-chain analysis
+  if (path === "/api/forensics" && method === "POST") {
+    // Check payment/auth
+    const authCheck = requireAuth(req, "read");
+    if (!authCheck.valid) {
+      const x402Check = await x402Middleware(req, "/api/forensics", "basic");
+      if (!x402Check.allowed) {
+        return x402Check.response!;
+      }
+    }
+    
+    try {
+      const body = await req.json() as { agentId: string; chain?: string; depth?: "quick" | "standard" | "deep" };
+      
+      if (!body.agentId) {
+        return error("agentId is required", 400);
+      }
+      
+      // Import forensics engine
+      const { generateRiskReport, formatReportAsJSON, formatReportAsMarkdown } = await import("../forensics/report");
+      
+      const report = await generateRiskReport({
+        agentId: body.agentId,
+        options: {
+          chain: body.chain,
+          depth: body.depth || "standard",
+          includeRawData: true,
+        }
+      });
+      
+      // Return format based on accept header
+      const accept = req.headers.get("Accept") || "";
+      if (accept.includes("text/markdown")) {
+        return new Response(formatReportAsMarkdown(report), {
+          headers: {
+            "Content-Type": "text/markdown",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+      
+      return json({
+        success: true,
+        report
+      });
+    } catch (e) {
+      console.error("Error generating forensics report:", e);
+      return error("Failed to generate forensics report", 500);
+    }
+  }
+  
+  // Quick Forensics - Lightweight check
+  if (path.startsWith("/api/forensics/quick/") && method === "GET") {
+    const agentId = decodeURIComponent(path.replace("/api/forensics/quick/", ""));
+    
+    try {
+      const { generateRiskReport, formatReportAsJSON } = await import("../forensics/report");
+      
+      const report = await generateRiskReport({
+        agentId,
+        options: { depth: "quick" }
+      });
+      
+      // Return minimal report for quick check
+      return json({
+        success: true,
+        report: {
+          agentId: report.agent_summary.id,
+          name: report.agent_summary.name,
+          grade: report.grade,
+          riskScore: report.overall_risk_score,
+          confidence: report.confidence,
+          badge: report.badge_suggestion,
+          totalClaims: report.total_claims,
+          topRisk: report.key_negatives[0]?.description || "No major risks detected",
+        }
+      });
+    } catch (e) {
+      console.error("Error in quick forensics:", e);
+      return error("Failed to analyze agent", 500);
+    }
+  }
+  
+  // Forensics Badge - Generate SVG badge
+  if (path.startsWith("/api/forensics/badge/") && method === "GET") {
+    const agentId = decodeURIComponent(path.replace("/api/forensics/badge/", ""));
+    
+    try {
+      const { generateRiskReport } = await import("../forensics/report");
+      const report = await generateRiskReport({ agentId, options: { depth: "quick" } });
+      
+      const svg = generateForensicsBadgeSVG(report);
+      
+      return new Response(svg, {
+        headers: {
+          "Content-Type": "image/svg+xml",
+          "Cache-Control": "public, max-age=300",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    } catch (e) {
+      console.error("Error generating badge:", e);
+      return error("Failed to generate badge", 500);
+    }
+  }
+  
+  // Forensics Badge SVG Generator
+  function generateForensicsBadgeSVG(report: any): string {
+    const grade = report.grade;
+    const score = report.overall_risk_score;
+    const agentId = report.agent_summary.id.substring(0, 20);
+    
+    // Color coding by grade
+    const colors: Record<string, { bg: string; text: string; border: string }> = {
+      A: { bg: "#1a472a", text: "#00ff88", border: "#00ff88" },
+      B: { bg: "#1a472a", text: "#88ff00", border: "#88ff00" },
+      C: { bg: "#474720", text: "#ffaa00", border: "#ffaa00" },
+      D: { bg: "#472a1a", text: "#ff6600", border: "#ff6600" },
+      F: { bg: "#2a1a1a", text: "#ff0000", border: "#ff0000" },
+      NR: { bg: "#333333", text: "#888888", border: "#666666" },
+    };
+    
+    const color = colors[grade] || colors.NR;
+    
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="80" viewBox="0 0 280 80">
+      <rect width="280" height="80" fill="${color.bg}" rx="8"/>
+      <rect x="1" y="1" width="278" height="78" fill="none" stroke="${color.border}" stroke-width="2" rx="7"/>
+      
+      <!-- Logo -->
+      <text x="12" y="28" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="${color.text}">AlliGo</text>
+      <text x="12" y="42" font-family="Arial, sans-serif" font-size="8" fill="#888">FORENSICS</text>
+      
+      <!-- Grade Circle -->
+      <circle cx="230" cy="40" r="30" fill="${color.bg}" stroke="${color.border}" stroke-width="3"/>
+      <text x="230" y="48" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="${color.text}" text-anchor="middle">${grade}</text>
+      
+      <!-- Score -->
+      <text x="100" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff">${score}/100</text>
+      <text x="100" y="50" font-family="Arial, sans-serif" font-size="9" fill="#888">RISK SCORE</text>
+      
+      <!-- Agent ID (truncated) -->
+      <text x="12" y="65" font-family="monospace, font-size="8" fill="#666">${agentId}...</text>
+    </svg>`;
+  }
+  
   return error("Not found", 404);
-}
 
 // ==================== SEED DATA (Real Incidents) ====================
 
