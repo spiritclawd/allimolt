@@ -16,14 +16,14 @@ restartPolicyMaxRetries = 3
 # This ensures data survives redeploys
 [[services.volume]]
 name = "alligo-data"
-path = "/app/data"
+mountPath = "/app/data"
 
 # Environment variables (set in Railway dashboard):
 # Required:
 # - ADMIN_API_KEY: Your secure admin API key
 # - JWT_SECRET: Secret for JWT tokens
 # - NODE_ENV: production
-# - DATABASE_PATH: /app/data/alligo.db (auto-set in Dockerfile)
+# - DATABASE_PATH: /app/data/alligo.db (auto-set in config)
 # Optional:
 # - TELEGRAM_BOT_TOKEN: Bot token from @BotFather
 # - TELEGRAM_CHANNEL_ID: Channel ID for alerts

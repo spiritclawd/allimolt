@@ -94,8 +94,8 @@ export const config: Config = {
   nodeEnv: (getEnv("NODE_ENV", "development") as Config["nodeEnv"]),
   host: getEnv("HOST", "0.0.0.0"),
 
-  // Database
-  databasePath: getEnv("DATABASE_PATH", "./data/alligo.db"),
+  // Database - Use /app/data for Railway volume persistence
+  databasePath: getEnv("DATABASE_PATH", process.env.NODE_ENV === "production" ? "/app/data/alligo.db" : "./data/alligo.db"),
 
   // Auth - Use secure defaults for dev, require in production
   adminApiKey: getEnv("ADMIN_API_KEY", "alligo_admin_dev_key"),

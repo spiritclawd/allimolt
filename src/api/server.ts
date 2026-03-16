@@ -975,6 +975,31 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ success: true, ...stats });
   }
   
+  // Admin metrics dashboard - Acquisition readiness signals
+  if (path === "/api/admin/metrics" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    const metrics = collectAdminMetrics();
+    return json({ success: true, ...metrics });
+  }
+  
+  // Admin metrics export (CSV format for pitch deck)
+  if (path === "/api/admin/metrics/export" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    const metrics = collectAdminMetrics();
+    const csv = formatMetricsCSV(metrics);
+    
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="alligo_metrics_${Date.now()}.csv"`,
+      },
+    });
+  }
+  
   // ==================== FORENSICS ENGINE ====================
   
   // Deep Forensics Report - Full on-chain analysis
@@ -2086,4 +2111,204 @@ function handleDatabaseBackup(): Response {
     console.error("Backup failed:", e);
     return error("Backup failed: " + e.message, 500);
   }
+}
+
+// ==================== ADMIN METRICS ====================
+
+interface AdminMetrics {
+  // Dataset size
+  total_agents_scanned: number;
+  total_claims: number;
+  total_value_tracked_usd: number;
+  
+  // Revenue signals
+  total_payments_usd: number;
+  active_subscriptions: number;
+  api_keys_issued: number;
+  
+  // Growth signals
+  claims_30d: number;
+  
+  // Archetype stats
+  archetype_distribution: Record<string, number>;
+  
+  // Acquisition readiness
+  acquisition_readiness: {
+    data_moat_score: number;
+    revenue_signal_score: number;
+    growth_trajectory_score: number;
+    overall_readiness: number;
+    strengths: string[];
+    gaps: string[];
+  };
+  
+  timestamp: number;
+}
+
+function collectAdminMetrics(): AdminMetrics {
+  // Get claim stats
+  const claimStats = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(amountLost) as total_value,
+      COUNT(CASE WHEN timestamp > ? THEN 1 END) as claims_30d
+    FROM claims
+  `).get(Date.now() - (30 * 24 * 60 * 60 * 1000)) as any;
+  
+  // Get unique agents
+  const agentStats = db.prepare(`
+    SELECT COUNT(DISTINCT agentId) as unique_agents
+    FROM claims
+  `).get() as any;
+  
+  // Get API key stats
+  const apiKeyStats = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      COUNT(CASE WHEN active = 1 THEN 1 END) as active
+    FROM api_keys
+  `).get() as any;
+  
+  // Get payment stats
+  const paymentStats = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(amount_usd_cents) as total_revenue,
+      COUNT(DISTINCT client_id) as unique_clients
+    FROM x402_payments
+    WHERE verified = 1
+  `).get() as any;
+  
+  // Get claims by category (proxy for archetype distribution)
+  const categoryStats = db.prepare(`
+    SELECT category, COUNT(*) as count
+    FROM claims
+    GROUP BY category
+  `).all() as Array<{ category: string; count: number }>;
+  
+  const archetypeDistribution: Record<string, number> = {};
+  for (const cat of categoryStats) {
+    archetypeDistribution[cat.category] = cat.count;
+  }
+  
+  // Calculate acquisition readiness scores
+  const dataMoatScore = calculateDataMoatScore(
+    agentStats?.unique_agents || 0,
+    claimStats?.total_value || 0,
+    claimStats?.total || 0
+  );
+  
+  const revenueScore = calculateRevenueScore(
+    (paymentStats?.total_revenue || 0) / 100,
+    apiKeyStats?.total || 0
+  );
+  
+  const growthScore = calculateGrowthScore(
+    claimStats?.claims_30d || 0
+  );
+  
+  const overall = Math.round((dataMoatScore * 0.4) + (revenueScore * 0.3) + (growthScore * 0.3));
+  
+  const strengths: string[] = [];
+  const gaps: string[] = [];
+  
+  if (claimStats?.total >= 40) strengths.push(`${claimStats.total} claims tracked`);
+  else gaps.push("Need more claims (current: " + (claimStats?.total || 0) + ")");
+  
+  if ((claimStats?.total_value || 0) >= 50000000) strengths.push("$50M+ value tracked");
+  
+  if ((paymentStats?.total_revenue || 0) / 100 >= 100) strengths.push("$100+ revenue");
+  else gaps.push("No significant revenue yet");
+  
+  return {
+    total_agents_scanned: agentStats?.unique_agents || 0,
+    total_claims: claimStats?.total || 0,
+    total_value_tracked_usd: claimStats?.total_value || 0,
+    
+    total_payments_usd: (paymentStats?.total_revenue || 0) / 100,
+    active_subscriptions: paymentStats?.unique_clients || 0,
+    api_keys_issued: apiKeyStats?.total || 0,
+    
+    claims_30d: claimStats?.claims_30d || 0,
+    
+    archetype_distribution: archetypeDistribution,
+    
+    acquisition_readiness: {
+      data_moat_score: dataMoatScore,
+      revenue_signal_score: revenueScore,
+      growth_trajectory_score: growthScore,
+      overall_readiness: overall,
+      strengths,
+      gaps,
+    },
+    
+    timestamp: Date.now(),
+  };
+}
+
+function calculateDataMoatScore(agents: number, value: number, claims: number): number {
+  let score = 0;
+  
+  // Agent coverage (max 40 points)
+  if (agents >= 50) score += 40;
+  else if (agents >= 20) score += 25;
+  else if (agents >= 10) score += 15;
+  else score += 5;
+  
+  // Value tracked (max 30 points)
+  if (value >= 50000000) score += 30;
+  else if (value >= 10000000) score += 20;
+  else if (value >= 1000000) score += 10;
+  
+  // Claims volume (max 30 points)
+  if (claims >= 100) score += 30;
+  else if (claims >= 50) score += 20;
+  else if (claims >= 20) score += 10;
+  
+  return Math.min(100, score);
+}
+
+function calculateRevenueScore(revenueUsd: number, apiKeys: number): number {
+  let score = 0;
+  
+  if (revenueUsd >= 1000) score += 50;
+  else if (revenueUsd >= 100) score += 30;
+  else if (revenueUsd >= 10) score += 15;
+  
+  if (apiKeys >= 100) score += 50;
+  else if (apiKeys >= 50) score += 30;
+  else if (apiKeys >= 10) score += 15;
+  
+  return Math.min(100, score);
+}
+
+function calculateGrowthScore(claims30d: number): number {
+  if (claims30d >= 50) return 100;
+  if (claims30d >= 20) return 70;
+  if (claims30d >= 10) return 40;
+  if (claims30d >= 5) return 20;
+  return 10;
+}
+
+function formatMetricsCSV(metrics: AdminMetrics): string {
+  const lines = [
+    "metric,value,description",
+    `total_agents_scanned,${metrics.total_agents_scanned},Unique agents in database`,
+    `total_claims,${metrics.total_claims},Total incident claims`,
+    `total_value_tracked_usd,${metrics.total_value_tracked_usd},USD value of tracked failures`,
+    `total_payments_usd,${metrics.total_payments_usd},Total revenue from x402`,
+    `active_subscriptions,${metrics.active_subscriptions},Active paying clients`,
+    `api_keys_issued,${metrics.api_keys_issued},API keys created`,
+    `claims_30d,${metrics.claims_30d},Claims in last 30 days`,
+    `data_moat_score,${metrics.acquisition_readiness.data_moat_score},Data moat strength (0-100)`,
+    `revenue_signal_score,${metrics.acquisition_readiness.revenue_signal_score},Revenue signal (0-100)`,
+    `growth_trajectory_score,${metrics.acquisition_readiness.growth_trajectory_score},Growth signal (0-100)`,
+    `overall_readiness,${metrics.acquisition_readiness.overall_readiness},Acquisition readiness (0-100)`,
+  ];
+  
+  for (const [archetype, count] of Object.entries(metrics.archetype_distribution)) {
+    lines.push(`archetype_${archetype.toLowerCase()},${count},Claims in ${archetype} category`);
+  }
+  
+  return lines.join("\n");
 }
