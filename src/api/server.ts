@@ -4,7 +4,7 @@
  */
 
 import { serve } from "bun";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import {
   AgentClaim,
@@ -951,6 +951,30 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ success: true, ...stats });
   }
   
+  // Admin database backup
+  if (path === "/api/admin/backup" && method === "POST") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    return handleDatabaseBackup();
+  }
+  
+  // Admin database status
+  if (path === "/api/admin/db-status" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    
+    const dbPath = config.databasePath;
+    const stats = {
+      databasePath: dbPath,
+      exists: existsSync(dbPath),
+      totalClaims: countClaims(),
+      timestamp: Date.now(),
+    };
+    
+    return json({ success: true, ...stats });
+  }
+  
   // ==================== FORENSICS ENGINE ====================
   
   // Deep Forensics Report - Full on-chain analysis
@@ -958,7 +982,7 @@ async function handleRequest(req: Request): Promise<Response> {
     // Check payment/auth
     const authCheck = requireAuth(req, "read");
     if (!authCheck.valid) {
-      const x402Check = await x402Middleware(req, "/api/forensics", "basic");
+      const x402Check = await x402Middleware(req, "/api/forensics", "single_report");
       if (!x402Check.allowed) {
         return x402Check.response!;
       }
@@ -1107,7 +1131,7 @@ async function handleRequest(req: Request): Promise<Response> {
     
     // Allow x402 payment as alternative
     if (!authCheck.valid) {
-      const x402Check = await x402Middleware(req, "/api/forensics/agentic", "basic");
+      const x402Check = await x402Middleware(req, "/api/forensics/agentic", "single_report");
       if (!x402Check.valid) {
         return x402Check.response!;
       }
@@ -2003,3 +2027,63 @@ console.log("   Port: " + config.port);
 console.log("   Database: " + config.databasePath);
 console.log("   Claims: " + countClaims());
 console.log("");
+
+// ==================== GRACEFUL SHUTDOWN ====================
+
+import { closeDatabase } from "./db";
+
+function handleShutdown(signal: string) {
+  console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  
+  try {
+    // Close database connection
+    closeDatabase();
+    console.log("✅ Database closed successfully");
+  } catch (e) {
+    console.error("❌ Error closing database:", e);
+  }
+  
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+process.on("SIGINT", () => handleShutdown("SIGINT"));
+
+// ==================== BACKUP FUNCTION ====================
+
+function handleDatabaseBackup(): Response {
+  try {
+    const dbPath = config.databasePath;
+    if (!existsSync(dbPath)) {
+      return error("Database file not found", 404);
+    }
+    
+    // Create backups directory
+    const backupDir = join(process.cwd(), "backups");
+    if (!existsSync(backupDir)) {
+      mkdirSync(backupDir, { recursive: true });
+    }
+    
+    const backupPath = join(backupDir, `alligo_backup_${Date.now()}.db`);
+    
+    // Copy database file
+    const dbContent = readFileSync(dbPath);
+    writeFileSync(backupPath, dbContent);
+    
+    const stats = {
+      claims: countClaims(),
+      backupPath,
+      size: dbContent.length,
+      timestamp: Date.now(),
+    };
+    
+    return json({
+      success: true,
+      message: "Database backup created",
+      ...stats
+    });
+  } catch (e: any) {
+    console.error("Backup failed:", e);
+    return error("Backup failed: " + e.message, 500);
+  }
+}

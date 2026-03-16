@@ -12,15 +12,20 @@ healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-# AlliGo uses SQLite (embedded in Bun), no external database needed
-# No volumes required - data persists in /app/data/alligo.db
+# SQLite Persistence - Mount volume for database
+# This ensures data survives redeploys
+[[services.volume]]
+name = "alligo-data"
+path = "/app/data"
 
 # Environment variables (set in Railway dashboard):
 # Required:
 # - ADMIN_API_KEY: Your secure admin API key
 # - JWT_SECRET: Secret for JWT tokens
 # - NODE_ENV: production
+# - DATABASE_PATH: /app/data/alligo.db (auto-set in Dockerfile)
 # Optional:
 # - TELEGRAM_BOT_TOKEN: Bot token from @BotFather
 # - TELEGRAM_CHANNEL_ID: Channel ID for alerts
 # - USDC_RECIPIENT_ADDRESS: Wallet for x402 USDC payments
+# - X402_ENABLED: true (default)
