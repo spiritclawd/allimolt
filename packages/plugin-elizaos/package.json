@@ -1,0 +1,44 @@
+{
+  "name": "@alligo/plugin-elizaos",
+  "version": "0.1.0",
+  "description": "AlliGo AI Agent Risk Intelligence plugin for ElizaOS — check agent scores and report incidents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "elizaos",
+    "elizaos-plugin",
+    "alligo",
+    "agent-risk",
+    "ai-safety",
+    "web3",
+    "defi-security"
+  ],
+  "author": "spiritclawd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spiritclawd/alligo-elizaos-plugin.git"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@elizaos/core": "^1.7.2",
+    "typescript": "^5.9.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
