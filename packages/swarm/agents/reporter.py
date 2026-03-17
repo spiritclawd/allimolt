@@ -44,9 +44,10 @@ def fetch_url(url: str, headers: dict | None = None) -> dict | None:
 def get_alligo_data() -> dict:
     """Fetch current stats and recent claims from AlliGo."""
     health = fetch_url(f"{ALLIGO_API}/health") or {}
+    admin_key = os.environ.get("ALLIGO_ADMIN_KEY", "alligo_read_dev_key")
     stats = fetch_url(
         f"{ALLIGO_API}/api/stats",
-        headers={"Authorization": "Bearer alligo_read_dev_key"}
+        headers={"Authorization": f"Bearer {admin_key}"}
     ) or {}
 
     return {
@@ -95,16 +96,26 @@ def generate_report(data: dict) -> str:
     stats = stats_data.get("stats", {}) if isinstance(stats_data, dict) else {}
 
     total_claims = health.get("claims", "unknown")
-    total_value = stats.get("total_value_at_risk_usd", 0)
+    # API returns totalValueLost (not total_value_at_risk_usd)
+    total_value = stats.get("totalValueLost", stats.get("total_value_at_risk_usd", 0))
     week_str = datetime.now().strftime("Week of %B %d, %Y")
+
+    claims_by_type = stats.get("claimsByType", {})
+    claims_by_chain = stats.get("claimsByChain", {})
+    top_agents = stats.get("topAgents", [])[:3]
+    top_chains = sorted(claims_by_chain.items(), key=lambda x: x[1], reverse=True)[:4]
+    top_types = sorted(claims_by_type.items(), key=lambda x: x[1], reverse=True)
 
     context = f"""
 AlliGo Live Data ({week_str}):
 - Total incidents tracked: {total_claims}
-- Total value at risk: ${total_value:,.0f} USD
+- Total value lost: ${total_value:,.0f} USD
 - Database status: {health.get('status', 'unknown')}
 - x402 payments: {'enabled' if health.get('x402') else 'disabled'}
-- Redis cache: {'connected' if health.get('redis', {}).get('connected') else 'offline'}
+- Redis cache hit rate: {health.get('redis', {}).get('hit_rate', 0)*100:.0f}%
+- Incident types: {', '.join(f"{k}={v}" for k,v in top_types)}
+- Top chains: {', '.join(f"{k}={v}" for k,v in top_chains)}
+- Top agents by losses: {', '.join(f"{a.get('name','?')} (${a.get('valueLost',0):,.0f})" for a in top_agents)}
 """
 
     prompt = f"""Write a weekly "Rogue Agent Report" for AlliGo.
