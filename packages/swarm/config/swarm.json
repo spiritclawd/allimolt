@@ -81,6 +81,12 @@
       "schedule_minutes": 15,
       "script": "agents/daydreams_reviewer.py",
       "description": "Reviews TaskMarket bounty submissions: validates, runs forensics, auto-accepts, pays USDC, ingests into AlliGo DB"
+    },
+    "predictor": {
+      "enabled": true,
+      "schedule_hours": 4,
+      "script": "agents/predictor.py",
+      "description": "Pre-mortem risk prediction engine: flags high-risk agents at \u226580% confidence, publishes EAS-attested risk alerts before incidents happen"
     }
   },
   "sources": {
