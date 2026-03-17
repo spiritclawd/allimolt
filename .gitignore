@@ -46,3 +46,4 @@ coverage/
 .cache/
 .temp/
 .tmp/
+packages/swarm/data/taskmarket_keystore.json
