@@ -1029,7 +1029,7 @@ async function handleRequest(req: Request): Promise<Response> {
       // Store in Redis cache (TTL 2h) so status endpoint can read it
       const { isCacheAvailable: swarmCacheOk, setCached: swarmSetCached } = await import("../cache/redis");
       if (swarmCacheOk()) {
-        await swarmSetCached("swarm:state", JSON.stringify(body), 7200);
+        await swarmSetCached("swarm:state", body, 7200);
       } else {
         // Fallback: store in a module-level variable
         (globalThis as any).__swarmState = body;
@@ -1049,8 +1049,8 @@ async function handleRequest(req: Request): Promise<Response> {
       let swarmData: any = null;
       const { isCacheAvailable: swarmStatusCacheOk, getCached: swarmGetCached } = await import("../cache/redis");
       if (swarmStatusCacheOk()) {
-        const cached = await swarmGetCached<string>("swarm:state");
-        if (cached) swarmData = JSON.parse(cached as string);
+        const cached = await swarmGetCached<any>("swarm:state");
+        if (cached) swarmData = cached;
       }
       if (!swarmData) swarmData = (globalThis as any).__swarmState || null;
 
