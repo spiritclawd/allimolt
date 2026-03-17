@@ -1160,28 +1160,106 @@ async function handleRequest(req: Request): Promise<Response> {
 
       // Run through agentic internals forensics engine (the MOAT)
       // Maps submit-traces API fields → AgenticDataInput schema
+      // CRITICAL: Also extract signals from traces[].messages[] format (used by TaskMarket agents)
+
+      // --- Extract signals from traces[].messages[] ---
+      const allMessages: any[] = Array.isArray(traces)
+        ? traces.flatMap((t: any) => Array.isArray(t.messages) ? t.messages : [])
+        : [];
+
+      // CoT steps: extract from assistant messages (they hold the reasoning)
+      const cotStepsFromMessages = allMessages
+        .filter((m: any) => m.role === "assistant" && m.content)
+        .map((m: any, i: number) => ({
+          step: i,
+          thought: m.content || "",
+          action: m.tool_calls?.[0]?.name || m.tool_calls?.[0]?.function?.name || "",
+        }));
+
+      // Tool calls: extract from all assistant messages with tool_calls array
+      const toolCallsFromMessages = allMessages
+        .flatMap((m: any) => {
+          if (!m.tool_calls) return [];
+          return m.tool_calls.map((c: any) => ({
+            tool: c.name || c.function?.name || c.tool || "unknown",
+            params: c.params || c.args || c.arguments || c.input || c.function?.arguments || {},
+            success: c.success !== undefined ? c.success : true,
+            retry_count: c.retry_count || 0,
+            result: c.result || null,
+            timestamp: Date.now(),
+          }));
+        });
+
+      // Injection attempts: detect prompt injection patterns in user messages
+      const INJECTION_PATTERNS = [
+        /ignore\s+(previous|all|above)\s+instruction/i,
+        /you\s+are\s+now\s+in\s+(developer|jailbreak|unrestricted)\s+mode/i,
+        /disregard\s+all/i,
+        /pretend\s+that/i,
+        /roleplay\s+as/i,
+        /for\s+testing\s+purposes\s+only/i,
+        /\[SYSTEM\s+OVERRIDE\]/i,
+        /ignore\s+your\s+constraints/i,
+        /forget\s+everything\s+above/i,
+        /new\s+instructions?\s*:/i,
+      ];
+      const injectionAttemptsFromMessages = allMessages
+        .filter((m: any) => m.role === "user" && m.content)
+        .flatMap((m: any) => {
+          const matched = INJECTION_PATTERNS.filter(re => re.test(m.content));
+          if (matched.length === 0) return [];
+          return [{
+            input: m.content,
+            vulnerability_type: "prompt_injection",
+            blocked: false, // assume unblocked unless assistant refused
+          }];
+        });
+
+      // Memory manipulation: detect state-write tool calls
+      const STATE_WRITE_TOOLS = /update_memory|set_context|write_state|patch_config|overwrite|insert_memory/i;
+      const memoryWriteTools = toolCallsFromMessages.filter(tc => STATE_WRITE_TOOLS.test(tc.tool));
+
+      // Check if assistant actually complied with injection (not blocked)
+      // If assistant content after an injection message contains suspicious compliance
+      const COMPLIANCE_PATTERNS = /i\s+am\s+now|developer\s+mode|no\s+restrictions|i\s+will\s+help\s+with\s+anything|my\s+constraints\s+have\s+been/i;
+      const assistantComplied = allMessages.some(
+        (m: any) => m.role === "assistant" && COMPLIANCE_PATTERNS.test(m.content || "")
+      );
+      // Mark injections as unblocked if assistant complied, blocked otherwise
+      const finalInjectionAttempts = injectionAttemptsFromMessages.map(ia => ({
+        ...ia,
+        blocked: !assistantComplied,
+      }));
+
+      // Merge top-level explicit fields (highest priority) with message-extracted signals
+      const mergedToolCalls = [
+        ...((body.tool_calls || body.toolCalls) || []).map((c: any) => ({
+          tool: c.tool || c.name || c.function || "unknown",
+          params: c.params || c.args || c.arguments || c.input || {},
+          success: c.success !== undefined ? c.success : true,
+          retry_count: c.retry_count || c.retryCount || 0,
+          result: c.result || c.output || null,
+          timestamp: c.timestamp || Date.now(),
+        })),
+        ...toolCallsFromMessages,
+      ];
+
       const { analyzeAgenticInternals } = await import("../forensics/agentic-internals");
       const report = await analyzeAgenticInternals({
         agent_handle: agentId,
         direct_agentic_data: {
           cot_trace: body.chain_of_thought || body.cot || body.chainOfThought || traceText,
-          tool_calls: (body.tool_calls || body.toolCalls)
-            ? (body.tool_calls || body.toolCalls).map((c: any) => ({
-                tool: c.tool || c.name || c.function || "unknown",
-                params: c.params || c.args || c.arguments || c.input || {},
-                success: c.success !== undefined ? c.success : true,
-                retry_count: c.retry_count || c.retryCount || 0,
-                result: c.result || c.output || null,
-                timestamp: c.timestamp || Date.now(),
-              }))
-            : undefined,
+          cot_steps: cotStepsFromMessages.length > 0 ? cotStepsFromMessages : undefined,
+          tool_calls: mergedToolCalls.length > 0 ? mergedToolCalls : undefined,
           goal_history: body.goal_history || body.goalHistory
             ? (body.goal_history || body.goalHistory).map((g: string, i: number) => ({
                 step: i, goal: g, timestamp: Date.now()
               }))
             : undefined,
           memory_snapshot: body.memory_ops || body.memoryOperations || undefined,
-          injection_attempts: body.injection_attempts || undefined,
+          injection_attempts: (body.injection_attempts || finalInjectionAttempts).length > 0
+            ? (body.injection_attempts || finalInjectionAttempts)
+            : undefined,
           agent_messages: body.agent_messages || undefined,
         },
       });
