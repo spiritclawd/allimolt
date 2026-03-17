@@ -10,6 +10,8 @@ Schedule: every 12 hours (new claims picked up automatically)
 import os
 import subprocess
 import sys
+import json
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +35,27 @@ def log(msg: str):
     with open(log_file, "a") as f:
         f.write(line + "\n")
 
+EAS_WALLET = os.environ.get("EAS_ATTESTER_ADDRESS", "0xBeE919f77e5b8b14776B5D687e1fb8Bf0080aa1d")
+EAS_MIN_ETH = 0.0005  # minimum ETH to proceed with onchain attestation
+
+def check_eas_eth_balance() -> float:
+    """Check EAS attester wallet ETH balance on Base Mainnet."""
+    payload = json.dumps({
+        "jsonrpc": "2.0", "method": "eth_getBalance",
+        "params": [EAS_WALLET, "latest"], "id": 1
+    }).encode()
+    for rpc in ["https://base.llamarpc.com", "https://base-rpc.publicnode.com", "https://mainnet.base.org"]:
+        try:
+            req = urllib.request.Request(rpc, data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}, method="POST")
+            with urllib.request.urlopen(req, timeout=8) as r:
+                result = json.loads(r.read())
+            if "result" in result:
+                return int(result["result"], 16) / 1e18
+        except Exception:
+            continue
+    return -1.0  # unknown
+
 def run():
     log("=" * 60)
     log("EAS Attester starting")
@@ -41,6 +64,19 @@ def run():
     if not ADMIN_KEY:
         log("ERROR: ALLIGO_ADMIN_KEY not set")
         sys.exit(1)
+
+    # Pre-flight: check ETH balance if running in onchain mode
+    if EAS_MODE == "onchain":
+        eth_balance = check_eas_eth_balance()
+        if eth_balance == -1.0:
+            log("⚠️ EAS BLOCKED — could not read wallet balance (RPC error). Skipping attestation run.")
+            return
+        elif eth_balance < EAS_MIN_ETH:
+            log(f"🚫 EAS BLOCKED — waiting for ETH top-up | wallet={EAS_WALLET} | balance={eth_balance:.6f} ETH | required≥{EAS_MIN_ETH} ETH")
+            log("   Send ETH on Base Mainnet to resume onchain attestations.")
+            return
+        else:
+            log(f"✅ EAS wallet funded: {eth_balance:.6f} ETH — proceeding with onchain attestation")
 
     env = os.environ.copy()
     env.update({
