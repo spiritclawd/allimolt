@@ -1148,7 +1148,16 @@ async function handleRequest(req: Request): Promise<Response> {
         agent_handle: agentId,
         direct_agentic_data: {
           cot_trace: body.chain_of_thought || body.cot || body.chainOfThought || traceText,
-          tool_calls: body.tool_calls || body.toolCalls || undefined,
+          tool_calls: (body.tool_calls || body.toolCalls)
+            ? (body.tool_calls || body.toolCalls).map((c: any) => ({
+                tool: c.tool || c.name || c.function || "unknown",
+                params: c.params || c.args || c.arguments || c.input || {},
+                success: c.success !== undefined ? c.success : true,
+                retry_count: c.retry_count || c.retryCount || 0,
+                result: c.result || c.output || null,
+                timestamp: c.timestamp || Date.now(),
+              }))
+            : undefined,
           goal_history: body.goal_history || body.goalHistory
             ? (body.goal_history || body.goalHistory).map((g: string, i: number) => ({
                 step: i, goal: g, timestamp: Date.now()
