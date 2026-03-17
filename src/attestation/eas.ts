@@ -141,11 +141,16 @@ export async function createOffchainAttestation(
 /**
  * Create an ONCHAIN attestation (requires ETH for gas on Base).
  * Permanent, immutable, queryable via EAS GraphQL.
+ *
+ * Pass an explicit nonce to avoid "nonce too low" / "replacement underpriced"
+ * errors when attesting multiple claims in a single run. Caller should fetch
+ * the current confirmed nonce once and increment it per call.
  */
 export async function createOnchainAttestation(
   data: AlliGoAttestation,
   privateKey: string,
-  schemaUid: string
+  schemaUid: string,
+  nonce?: number
 ): Promise<AttestationResult> {
   const signer = getSigner(privateKey);
   const eas = new EAS(EAS_CONTRACT_ADDRESS);
@@ -154,15 +159,25 @@ export async function createOnchainAttestation(
   const encodedData = encodeAttestation(data);
   const now = Math.floor(Date.now() / 1000);
 
-  const tx = await eas.attest({
-    schema: schemaUid,
-    data: {
-      recipient: "0x0000000000000000000000000000000000000000",
-      expirationTime: BigInt(0),
-      revocable: true,
-      data: encodedData,
+  // Build overrides — always pass explicit nonce when provided so Base can't
+  // re-use or collide nonces across rapid sequential transactions.
+  const overrides: Record<string, unknown> = {};
+  if (nonce !== undefined) {
+    overrides.nonce = nonce;
+  }
+
+  const tx = await eas.attest(
+    {
+      schema: schemaUid,
+      data: {
+        recipient: "0x0000000000000000000000000000000000000000",
+        expirationTime: BigInt(0),
+        revocable: true,
+        data: encodedData,
+      },
     },
-  });
+    overrides
+  );
 
   const uid = await tx.wait();
   const receipt = await tx.tx?.wait();

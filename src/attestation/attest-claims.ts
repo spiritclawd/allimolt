@@ -15,7 +15,7 @@
  *   - Prints verify URLs for each attestation
  */
 
-import { createOffchainAttestation, createOnchainAttestation, computeSchemaUid, ALLIGO_SCHEMA, type AlliGoAttestation, type AttestationResult } from "./eas";
+import { createOffchainAttestation, createOnchainAttestation, computeSchemaUid, ALLIGO_SCHEMA, BASE_RPC, type AlliGoAttestation, type AttestationResult } from "./eas";
 import { ethers } from "ethers";
 import { writeFileSync, appendFileSync, existsSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
@@ -43,9 +43,9 @@ async function fetchClaims(): Promise<any[]> {
   return data.claims || [];
 }
 
-async function patchClaimEasUid(claimId: string, easUid: string, verifyUrl: string, mode: string): Promise<void> {
-  // Store EAS uid in the claim via PATCH — we extend the patch endpoint to accept eas_uid
-  await fetch(`${ALLIGO_API}/api/admin/claims/${claimId}`, {
+async function patchClaimEasUid(claimId: string, easUid: string, verifyUrl: string, mode: string): Promise<string> {
+  // Store EAS uid in the claim via PATCH
+  const resp = await fetch(`${ALLIGO_API}/api/admin/claims/${claimId}`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${ADMIN_KEY}`,
@@ -53,6 +53,8 @@ async function patchClaimEasUid(claimId: string, easUid: string, verifyUrl: stri
     },
     body: JSON.stringify({ eas_uid: easUid, eas_verify_url: verifyUrl, eas_mode: mode }),
   });
+  const text = await resp.text();
+  return `${resp.status} ${text.slice(0, 80)}`;
 }
 
 function claimToAttestation(claim: any): AlliGoAttestation {
@@ -116,6 +118,17 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
+  // Fetch starting nonce once (confirmed, not pending) to avoid collisions.
+  // We increment manually per successful tx submission so rapid sequential
+  // attestations don't race on the same nonce.
+  let currentNonce: number | undefined;
+  if (EAS_MODE === "onchain") {
+    const provider = new ethers.JsonRpcProvider(BASE_RPC);
+    const wallet = new ethers.Wallet(PRIVATE_KEY);
+    currentNonce = await provider.getTransactionCount(wallet.address, "latest");
+    log(`Starting nonce: ${currentNonce} (address: ${wallet.address})`);
+  }
+
   for (const claim of toAttest) {
     const attestData = claimToAttestation(claim);
     log(`\nAttesting: ${claim.title?.slice(0, 60)} ($${(claim.amountLost || 0).toLocaleString()})`);
@@ -125,8 +138,11 @@ async function main() {
       let result: AttestationResult;
       
       if (EAS_MODE === "onchain") {
-        result = await createOnchainAttestation(attestData, PRIVATE_KEY, SCHEMA_UID);
+        log(`  nonce=${currentNonce}`);
+        result = await createOnchainAttestation(attestData, PRIVATE_KEY, SCHEMA_UID, currentNonce);
         log(`  ✅ ONCHAIN tx: ${result.txHash}`);
+        // Increment nonce only after successful submission
+        currentNonce = (currentNonce ?? 0) + 1;
       } else {
         result = await createOffchainAttestation(attestData, PRIVATE_KEY, SCHEMA_UID);
         log(`  ✅ OFFCHAIN uid: ${result.uid.slice(0, 20)}...`);
@@ -148,18 +164,27 @@ async function main() {
       };
       appendFileSync(ATTESTATION_LOG, JSON.stringify(record) + "\n");
 
-      // Patch claim with EAS uid (best effort)
-      await patchClaimEasUid(claim.id, result.uid, result.verifyUrl, result.mode).catch(() => {});
+      // Patch claim DB with EAS uid
+      const patchResp = await patchClaimEasUid(claim.id, result.uid, result.verifyUrl, result.mode);
+      log(`  DB patch: ${patchResp}`);
 
       successCount++;
     } catch (e: any) {
-      log(`  ❌ Failed: ${e.message}`);
+      log(`  ❌ Failed: ${e.message?.split("\n")[0]}`);
       failCount++;
+      // On failure, re-fetch the confirmed nonce in case we're out of sync
+      if (EAS_MODE === "onchain") {
+        try {
+          const provider = new ethers.JsonRpcProvider(BASE_RPC);
+          const wallet = new ethers.Wallet(PRIVATE_KEY);
+          currentNonce = await provider.getTransactionCount(wallet.address, "latest");
+          log(`  Nonce re-synced to ${currentNonce} after failure`);
+        } catch {}
+      }
     }
 
-    // Wait 3s between attestations — Base needs to mine/index the previous tx
-    // before the next nonce is valid (500ms caused NONCE_EXPIRED / REPLACEMENT_UNDERPRICED errors)
-    await new Promise(r => setTimeout(r, 3000));
+    // Small delay to let Base broadcast — nonce is now explicit so this is just courtesy
+    await new Promise(r => setTimeout(r, 500));
   }
 
   log("\n" + "=".repeat(60));
