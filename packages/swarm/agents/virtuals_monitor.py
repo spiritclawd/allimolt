@@ -326,9 +326,9 @@ def assess_risk(agent: dict, run_bytecode_analysis: bool = True) -> dict:
     description = (agent.get("description") or "").lower()
     token_utility = (agent.get("tokenUtility") or "").lower()
     status = agent.get("status", "UNDERGRAD")
-    holder_count = agent.get("holderCount", 0)
+    holder_count = agent.get("holderCount") or 0
     is_verified = agent.get("isVerified", False)
-    mcap_in_virtual = agent.get("mcapInVirtual", 0)
+    mcap_in_virtual = agent.get("mcapInVirtual") or 0
     token_address = agent.get("tokenAddress") or agent.get("preToken", "")
 
     reasons = []

@@ -38,6 +38,36 @@ ALLIGO_ADMIN_KEY = os.environ.get("ALLIGO_ADMIN_KEY", "")
 # TaskMarket CLI
 TASKMARKET = ["npx", "--yes", "@lucid-agents/taskmarket"]
 
+def ensure_taskmarket_keystore():
+    """
+    Auto-restore TaskMarket keystore from TASKMARKET_PRIVATE_KEY env var if missing.
+    Prevents 'Keystore not found' errors after machine wipe.
+    """
+    keystore_path = Path.home() / ".taskmarket" / "keystore.json"
+    if keystore_path.exists():
+        return True
+    private_key = os.environ.get("TASKMARKET_PRIVATE_KEY", "")
+    if not private_key:
+        return False
+    try:
+        result = subprocess.run(
+            ["npx", "--yes", "@lucid-agents/taskmarket", "wallet", "import",
+             "--key", private_key, "--yes"],
+            capture_output=True, text=True, timeout=60,
+            env={**os.environ, "HOME": str(Path.home())}
+        )
+        if keystore_path.exists():
+            return True
+        # Some versions use different flag
+        result2 = subprocess.run(
+            ["npx", "--yes", "@lucid-agents/taskmarket", "wallet", "import", private_key],
+            capture_output=True, text=True, timeout=60,
+            env={**os.environ, "HOME": str(Path.home())}
+        )
+        return keystore_path.exists()
+    except Exception:
+        return False
+
 # Our posted task IDs (updated as new tasks are posted)
 ALLIGO_TASK_IDS_FILE = DATA_DIR / "alligo_task_ids.json"
 
@@ -142,13 +172,32 @@ def save_json(path: Path, data):
     path.write_text(json.dumps(data, indent=2, default=str))
 
 def load_task_ids() -> list[str]:
-    return load_json(ALLIGO_TASK_IDS_FILE, [])
+    raw = load_json(ALLIGO_TASK_IDS_FILE, [])
+    # Handle both old list format and new dict format
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, dict):
+        # Extract string IDs from active list; legacy tasks are expired/unrecoverable
+        active = raw.get("active", [])
+        ids = []
+        for item in active:
+            if isinstance(item, str):
+                ids.append(item)
+            elif isinstance(item, dict) and item.get("id"):
+                ids.append(item["id"])
+        return ids
+    return []
 
 def save_task_id(task_id: str):
-    ids = load_task_ids()
-    if task_id not in ids:
-        ids.append(task_id)
-        save_json(ALLIGO_TASK_IDS_FILE, ids)
+    raw = load_json(ALLIGO_TASK_IDS_FILE, {})
+    if isinstance(raw, list):
+        # Migrate to dict format
+        raw = {"active": raw, "legacy": []}
+    active = raw.get("active", [])
+    if task_id not in active:
+        active.append(task_id)
+        raw["active"] = active
+        save_json(ALLIGO_TASK_IDS_FILE, raw)
 
 def load_ledger() -> dict:
     return load_json(PAYOUT_LEDGER_FILE, {
@@ -408,6 +457,15 @@ def run():
         return
 
     DATA_DIR.mkdir(exist_ok=True)
+
+    # Auto-restore keystore from env if missing (survives machine wipe)
+    keystore_path = Path.home() / ".taskmarket" / "keystore.json"
+    if not keystore_path.exists():
+        log("⚠️ Keystore missing — attempting auto-restore from TASKMARKET_PRIVATE_KEY...")
+        if ensure_taskmarket_keystore():
+            log("✅ Keystore restored from private key")
+        else:
+            log("❌ Could not restore keystore — TASKMARKET_PRIVATE_KEY not set or import failed")
 
     # Check wallet balance
     balance = get_usdc_balance()

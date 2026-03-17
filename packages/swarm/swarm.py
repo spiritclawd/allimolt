@@ -178,7 +178,7 @@ def print_status(config: dict, state: dict):
         log(f"  {status} {agent_name}: runs={run_count}, last={last_run[:16] if last_run != 'never' else 'never'}")
     log("="*50)
 
-EAS_WALLET = "0xBeE919f77e5b8b14776B5D687e1fb8Bf0080aa1d"
+EAS_WALLET = "0x9F810067eA679aBBF3A0726aFC858d6314D56892"  # funded plain EOA (session 15)
 EAS_LOW_BALANCE_THRESHOLD = 0.002  # ETH — alert below this
 EAS_ALERT_INTERVAL = 3600 * 6  # re-alert at most every 6 hours
 _eas_last_alert_time = 0  # module-level dedup
