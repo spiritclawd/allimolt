@@ -1020,6 +1020,179 @@ async function handleRequest(req: Request): Promise<Response> {
     });
   }
   
+  // ── Swarm Status endpoint (admin) ─────────────────────────────────────────
+  // Returns live health of the Zaia Swarm 10-agent orchestration system.
+  // Reads from the swarm_state.json file written by swarm.py.
+  if (path === "/api/admin/swarm/status" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    try {
+      const swarmStatePath = "/home/computer/zaia-swarm/data/swarm_state.json";
+      const swarmLogPath = "/home/computer/zaia-swarm/logs/swarm_main.log";
+      let swarmState: Record<string, any> = {};
+      let lastLogLines: string[] = [];
+      try {
+        const { readFileSync } = await import("fs");
+        swarmState = JSON.parse(readFileSync(swarmStatePath, "utf8"));
+      } catch { /* swarm state not yet written */ }
+      try {
+        const { readFileSync } = await import("fs");
+        const logContent = readFileSync(swarmLogPath, "utf8");
+        lastLogLines = logContent.trim().split("\n").slice(-20);
+      } catch { /* log not available */ }
+
+      const agents = Object.entries(swarmState).map(([name, state]: [string, any]) => ({
+        name,
+        last_run: state.last_run || null,
+        last_success: state.last_success ?? null,
+        run_count: state.run_count || 0,
+        status: state.last_success === true ? "healthy" : state.last_success === false ? "error" : "pending",
+      }));
+
+      const healthyCount = agents.filter(a => a.status === "healthy").length;
+      const errorCount = agents.filter(a => a.status === "error").length;
+
+      return json({
+        success: true,
+        swarm: {
+          overall: errorCount === 0 ? "healthy" : "degraded",
+          agent_count: agents.length,
+          healthy: healthyCount,
+          errors: errorCount,
+          agents,
+          last_log_lines: lastLogLines,
+          checked_at: new Date().toISOString(),
+        }
+      });
+    } catch (e: any) {
+      return json({ success: false, error: e.message }, 500);
+    }
+  }
+
+  // ── Submit Traces endpoint ─────────────────────────────────────────────────
+  // Ingests raw agentic behavioral traces (CoT, tool calls, goal traces, memory ops).
+  // Runs through the forensics engine and returns classification + confidence.
+  // Stores high-confidence detections as claims. Attests via EAS if verified.
+  // Auth: API key (read tier or above) or x402 single payment.
+  if (path === "/api/submit-traces" && method === "POST") {
+    const authCheck = requireAuth(req, "read");
+    if (!authCheck.valid) {
+      const x402Check = await x402Middleware(req, "/api/submit-traces", "single_report");
+      if (!x402Check.allowed) return x402Check.response!;
+    }
+    try {
+      const body = await req.json();
+
+      // Validate required fields
+      const agentId = body.agentId || body.agent_id;
+      const traces = body.traces; // array of trace objects or raw string
+      const metadata = body.metadata || {};
+
+      if (!agentId) {
+        return json({ success: false, error: "agentId is required" }, 400);
+      }
+      if (!traces) {
+        return json({ success: false, error: "traces is required (array of trace objects or raw string)" }, 400);
+      }
+
+      // Normalize traces to string for forensics engine
+      const traceText = typeof traces === "string"
+        ? traces
+        : JSON.stringify(traces, null, 2);
+
+      // Build a synthetic incident record for forensics analysis
+      const syntheticIncident = {
+        agentId,
+        agentName: body.agentName || agentId,
+        protocol: body.protocol || "submitted-trace",
+        description: body.description || traceText.slice(0, 500),
+        traceData: {
+          chainOfThought: body.chain_of_thought || body.cot || null,
+          toolCalls: body.tool_calls || null,
+          goalHistory: body.goal_history || null,
+          memoryOps: body.memory_ops || null,
+          rawTrace: traceText,
+          submittedAt: new Date().toISOString(),
+          submittedBy: metadata.submitter || "api",
+        },
+        metadata,
+        timestamp: new Date().toISOString(),
+        source: "submit-traces-api",
+      };
+
+      // Run through agentic internals forensics engine (the MOAT)
+      const { analyzeAgenticInternals } = await import("../forensics/agentic-internals");
+      const report = await analyzeAgenticInternals({
+        agentId,
+        agentName: body.agentName || agentId,
+        chainOfThought: body.chain_of_thought || body.cot || body.chainOfThought || null,
+        toolCalls: body.tool_calls || body.toolCalls || null,
+        goalHistory: body.goal_history || body.goalHistory || null,
+        memoryOperations: body.memory_ops || body.memoryOperations || null,
+        rawTrace: traceText,
+        metadata,
+      });
+
+      const topRisk = report.riskAssessment || {};
+      const archetypeHit = report.archetypeMatches?.[0] || null;
+      const confidence = archetypeHit?.confidence ?? 0;
+      const archetype = archetypeHit?.archetype ?? "CLEAN";
+      const severityLabel = confidence >= 0.8 ? "HIGH" : confidence >= 0.5 ? "MEDIUM" : "LOW";
+
+      const result: Record<string, any> = {
+        success: true,
+        agentId,
+        forensics: {
+          archetype,
+          confidence,
+          severity: severityLabel,
+          riskScore: topRisk.score ?? null,
+          archetypeMatches: report.archetypeMatches || [],
+          indicators: archetypeHit?.indicators || [],
+          summary: report.summary || null,
+        },
+        action: "analyzed",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Auto-store as claim if high confidence (≥0.75) and real archetype detected
+      if (confidence >= 0.75 && archetype !== "CLEAN" && archetype !== "UNKNOWN") {
+        try {
+          const { insertClaim } = await import("./db");
+          const claimId = `trace-${agentId}-${Date.now()}`;
+          insertClaim({
+            id: claimId,
+            agentId,
+            agentName: body.agentName || agentId,
+            claimType: "security" as any,
+            category: "security" as any,
+            severityScore: Math.round(confidence * 100),
+            severityLevel: severityLabel.toLowerCase() as any,
+            amountLost: body.amountLost || 0,
+            title: `${archetype} detected via trace submission`,
+            description: `[Auto-detected from submitted traces] ${archetype} detected with ${(confidence * 100).toFixed(0)}% confidence. ${body.description || ""}`.trim(),
+            evidence: JSON.stringify(syntheticIncident.traceData),
+            timestamp: new Date().toISOString(),
+            reportedAt: new Date().toISOString(),
+            source: "submit-traces-api" as any,
+            verified: confidence >= 0.9,
+            chain: body.chain || "unknown",
+            tags: ["trace-submitted", "auto-detected", archetype.toLowerCase()],
+          } as any);
+          result.action = "stored";
+          result.claimId = claimId;
+          result.forensics.autoStored = true;
+        } catch (storeErr: any) {
+          result.storeError = storeErr.message;
+        }
+      }
+
+      return json(result);
+    } catch (e: any) {
+      return json({ success: false, error: e.message }, 500);
+    }
+  }
+
   // Agent Report endpoint - Generate performance report for any agent ID
   // Supports 8004 protocol and other agent identification systems
   // Requires x402 payment or valid API key
