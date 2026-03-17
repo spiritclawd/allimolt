@@ -375,13 +375,27 @@ function handleGetAgentScore(req: Request, agentId: string): Response {
     summary = `Critical risk. ${claims.length} claims, $${totalValueLost.toLocaleString()} lost.`;
   }
   
+  // Enriched fields — elizaOS plugin + ecosystem compatibility
+  const verifiedClaims = claims.filter(c => c.verified);
+  const easAttestedClaims = claims.filter(c => !!(c as any).easUid);
+  const sortedByDate = [...claims].sort((a, b) => b.incidentDate - a.incidentDate);
+  const lastIncidentDate = sortedByDate[0]?.incidentDate
+    ? new Date(sortedByDate[0].incidentDate).toISOString().slice(0, 10)
+    : null;
+  const riskLevel = score >= 80 ? "critical" : score >= 60 ? "high" : score >= 40 ? "medium" : "low";
+
   return json<AgentScoreResponse>({
     agentId: decodeURIComponent(agentId),
     riskScore: score,
+    riskLevel,
     confidence,
     totalClaims: claims.length,
     openClaims: claims.filter(c => c.resolution === Resolution.PENDING).length,
     totalValueLost,
+    incidentCount: claims.length,
+    verifiedIncidents: verifiedClaims.length,
+    easAttested: easAttestedClaims.length > 0,
+    lastIncident: lastIncidentDate,
     grade: claims.length === 0 ? "NR" : grade,
     summary,
     lastUpdated: Date.now(),
@@ -526,14 +540,30 @@ function handleGetPublicAgentScore(agentId: string): Response {
   const { score, confidence } = calculateRiskScore(claims);
   const grade = gradeFromScore(score);
   const totalValueLost = claims.reduce((sum, c) => sum + c.amountLost, 0);
-  
+  const verifiedClaims = claims.filter(c => c.verified);
+  const easAttestedClaims = claims.filter(c => !!(c as any).easUid);
+  const sortedByDate = [...claims].sort((a, b) => b.incidentDate - a.incidentDate);
+  const lastIncidentDate = sortedByDate[0]?.incidentDate
+    ? new Date(sortedByDate[0].incidentDate).toISOString().slice(0, 10)
+    : null;
+  const riskLevel = score >= 80 ? "critical" : score >= 60 ? "high" : score >= 40 ? "medium" : "low";
+  const summary = claims.length === 0
+    ? "No claims found for this agent. Not yet rated."
+    : `${claims.length} incident(s) recorded. ${verifiedClaims.length} verified. $${totalValueLost.toLocaleString()} total loss.`;
+
   return json({
     agentId: decodeURIComponent(agentId),
     riskScore: score,
+    riskLevel,
     confidence,
     totalClaims: claims.length,
     totalValueLost,
+    incidentCount: claims.length,
+    verifiedIncidents: verifiedClaims.length,
+    easAttested: easAttestedClaims.length > 0,
+    lastIncident: lastIncidentDate,
     grade: claims.length === 0 ? "NR" : grade,
+    summary,
     lastUpdated: Date.now(),
   });
 }

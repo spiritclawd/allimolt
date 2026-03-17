@@ -179,11 +179,18 @@ export interface SubmitClaimResponse {
 export interface AgentScoreResponse {
   agentId: string;
   riskScore: number;
+  riskLevel: "low" | "medium" | "high" | "critical";
   confidence: number;
   
   totalClaims: number;
   openClaims: number;
   totalValueLost: number;
+
+  // elizaOS plugin + ecosystem compatibility
+  incidentCount: number;
+  verifiedIncidents: number;
+  easAttested: boolean;
+  lastIncident: string | null;
   
   grade: "A" | "B" | "C" | "D" | "F" | "NR";  // NR = Not Rated
   
