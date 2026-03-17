@@ -816,6 +816,34 @@ async function handleRequest(req: Request): Promise<Response> {
     });
   }
   
+  // Calibration update endpoint (admin only) — called by Zaia Swarm after each calibration run
+  if (path === "/api/admin/calibration" && method === "POST") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    try {
+      const body = await req.json();
+      const accuracy = typeof body.accuracy === "number" ? body.accuracy : parseFloat(body.accuracy);
+      if (isNaN(accuracy) || accuracy < 0 || accuracy > 1) {
+        return json({ success: false, error: "accuracy must be a number between 0 and 1" }, 400);
+      }
+      const result = {
+        timestamp: body.timestamp || new Date().toISOString(),
+        accuracy,
+        total_tests: body.total_tests || null,
+        correct_detections: body.correct_detections || null,
+        avg_confidence: body.avg_confidence || null,
+      };
+      const calibrationPath = join(process.cwd(), "logs", "calibration-results.json");
+      const { mkdirSync } = await import("fs");
+      mkdirSync(join(process.cwd(), "logs"), { recursive: true });
+      writeFileSync(calibrationPath, JSON.stringify(result, null, 2));
+      console.log(`[calibration] Updated: accuracy=${accuracy} tests=${result.total_tests}`);
+      return json({ success: true, calibration: result });
+    } catch (e) {
+      return json({ success: false, error: "Invalid calibration data" }, 400);
+    }
+  }
+
   // API Routes
   if (path === "/api/claims" && method === "POST") return handleSubmitClaim(req);
   if (path === "/api/claims" && method === "GET") {
