@@ -335,6 +335,13 @@ function rowToClaim(row: any): AgentClaim {
   };
 }
 
+// Delete a claim by ID (admin only)
+export function deleteClaimById(id: string): boolean {
+  const stmt = db.prepare("DELETE FROM claims WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
 // Check if database is empty (for seeding)
 export function isDatabaseEmpty(): boolean {
   const count = countClaims();

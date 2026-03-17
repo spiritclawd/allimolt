@@ -30,6 +30,7 @@ import {
   listApiKeys,
   isDatabaseEmpty,
   searchClaims,
+  deleteClaimById,
   ApiKey,
 } from "./db";
 import {
@@ -842,6 +843,20 @@ async function handleRequest(req: Request): Promise<Response> {
     } catch (e) {
       return json({ success: false, error: "Invalid calibration data" }, 400);
     }
+  }
+
+  // Delete claim by ID (admin only)
+  const deleteClaimMatch = path.match(/^\/api\/admin\/claims\/([^/]+)$/);
+  if (deleteClaimMatch && method === "DELETE") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    const claimId = deleteClaimMatch[1];
+    const deleted = deleteClaimById(claimId);
+    if (!deleted) {
+      return json({ success: false, error: `Claim ${claimId} not found` }, 404);
+    }
+    console.log(`[admin] Deleted claim: ${claimId}`);
+    return json({ success: true, deleted: claimId });
   }
 
   // API Routes
