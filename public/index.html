@@ -895,6 +895,127 @@
     .footer-links a:hover { color: var(--accent); }
     .copyright { color: var(--text-secondary); font-size: 0.875rem; }
     
+    /* ── Risk Alerts Feed ─────────────────────────────────────── */
+    .risk-alerts {
+      background: linear-gradient(180deg, #0a0a0f 0%, var(--bg-primary) 100%);
+      padding: 5rem 2rem;
+      border-top: 1px solid rgba(255,68,68,0.2);
+    }
+    .risk-alerts-container { max-width: 960px; margin: 0 auto; }
+    .risk-alerts-header { text-align: center; margin-bottom: 2.5rem; }
+    .risk-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff4444 0%, #ff8800 100%);
+      color: #fff;
+      padding: 0.4rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      animation: pulse-red 2s infinite;
+    }
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+      50% { box-shadow: 0 0 20px 8px rgba(255,68,68,0.1); }
+    }
+    .risk-alerts h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .risk-alerts-subtitle {
+      color: var(--text-secondary); font-size: 1rem; max-width: 580px;
+      margin: 0 auto 0.75rem;
+    }
+    .risk-disclaimer {
+      background: rgba(255,170,0,0.08);
+      border: 1px solid rgba(255,170,0,0.25);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.8rem;
+      color: var(--warning);
+      margin: 0 auto 2rem;
+      max-width: 800px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .alerts-stats {
+      display: flex; gap: 2rem; justify-content: center;
+      margin-bottom: 2.5rem; flex-wrap: wrap;
+    }
+    .alert-stat { text-align: center; }
+    .alert-stat .val { font-size: 2rem; font-weight: 800; }
+    .alert-stat .val.red { color: var(--danger); }
+    .alert-stat .val.green { color: var(--accent); }
+    .alert-stat .val.orange { color: var(--warning); }
+    .alert-stat .lbl { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .alert-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .alert-card:hover { border-color: rgba(255,68,68,0.4); transform: translateY(-1px); }
+    .alert-card.confirmed {
+      border-color: rgba(0,255,136,0.4);
+      background: linear-gradient(135deg, rgba(0,255,136,0.03), var(--bg-secondary));
+    }
+    .alert-card.confirmed:hover { border-color: rgba(0,255,136,0.7); }
+    .alert-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .alert-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .alert-archetype {
+      background: rgba(255,68,68,0.15); color: var(--danger);
+      border: 1px solid rgba(255,68,68,0.3);
+      padding: 0.25rem 0.75rem; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700; font-family: monospace;
+    }
+    .alert-archetype.confirmed-arch {
+      background: rgba(0,255,136,0.15); color: var(--accent);
+      border-color: rgba(0,255,136,0.3);
+    }
+    .alert-confidence {
+      padding: 0.25rem 0.75rem; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700;
+      background: rgba(255,170,0,0.15); color: var(--warning);
+      border: 1px solid rgba(255,170,0,0.3);
+    }
+    .alert-status-badge {
+      padding: 0.25rem 0.75rem; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    }
+    .alert-status-badge.active { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.25); }
+    .alert-status-badge.confirmed { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.25); }
+    .alert-timestamp { font-size: 0.75rem; color: var(--text-secondary); }
+    .alert-title { font-size: 1rem; font-weight: 700; margin: 0.75rem 0 0.4rem; }
+    .alert-summary { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.75rem; }
+    .alert-evidence {
+      background: rgba(0,0,0,0.3); border-left: 3px solid rgba(255,68,68,0.4);
+      padding: 0.6rem 0.9rem; border-radius: 0 6px 6px 0;
+      font-size: 0.8rem; color: var(--text-secondary); font-style: italic;
+      margin-bottom: 0.75rem;
+    }
+    .alert-card.confirmed .alert-evidence { border-left-color: rgba(0,255,136,0.4); }
+    .alert-footer { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .alert-chain { font-size: 0.75rem; color: var(--text-secondary); background: var(--bg-primary); padding: 0.2rem 0.6rem; border-radius: 10px; }
+    .alert-eas-link {
+      font-size: 0.75rem; color: var(--accent); text-decoration: none;
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .alert-eas-link:hover { text-decoration: underline; }
+    .alert-confirmed-proof {
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.9rem;
+      background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 8px; font-size: 0.8rem;
+    }
+    .alert-confirmed-proof strong { color: var(--accent); }
+    .alerts-empty {
+      text-align: center; padding: 3rem;
+      color: var(--text-secondary); font-size: 0.9rem;
+    }
+    .alerts-loading { text-align: center; padding: 2rem; color: var(--text-secondary); }
+
     /* Claims Leaderboard - The Hook */
     .claims-leaderboard {
       background: var(--bg-secondary);
@@ -1377,6 +1498,40 @@
   <span class="key">"recurrence_forecast"</span>: { <span class="key">"risk_level"</span>: <span class="string">"critical"</span>, <span class="key">"probability"</span>: <span class="number">73</span> },
   <span class="key">"badge_suggestion"</span>: <span class="string">"AlliGo Forensics: D – Goal Drift Detected"</span>
 }</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Risk Alerts Feed ──────────────────────────────────────────── -->
+  <section class="risk-alerts" id="risk-alerts">
+    <div class="risk-alerts-container">
+      <div class="risk-alerts-header">
+        <div class="risk-badge">⚠ LIVE RISK ALERTS</div>
+        <h2>Pre-Mortem Predictions</h2>
+        <p class="risk-alerts-subtitle">
+          Agents flagged <strong>before</strong> the incident. Every alert is timestamped onchain via EAS — verifiable proof of prediction.
+        </p>
+        <div class="risk-disclaimer">
+          ⚠️ Predictive signals based on agentic internals forensics. Not financial advice. Past predictions do not guarantee future outcomes. AlliGo is not liable for losses. All alerts ≥80% confidence only.
+        </div>
+        <div class="alerts-stats">
+          <div class="alert-stat">
+            <div class="val red" id="alerts-active-count">–</div>
+            <div class="lbl">Active Flags</div>
+          </div>
+          <div class="alert-stat">
+            <div class="val green" id="alerts-confirmed-count">–</div>
+            <div class="lbl">Confirmed</div>
+          </div>
+          <div class="alert-stat">
+            <div class="val orange" id="alerts-total-count">–</div>
+            <div class="lbl">Total Predictions</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="alerts-feed">
+        <div class="alerts-loading">Loading risk alerts…</div>
       </div>
     </div>
   </section>
@@ -1978,6 +2133,87 @@ if (score.grade === 'F' || score.grade === 'D') {
       })
       .catch(() => {});
     
+    // ==================== Risk Alerts Feed ====================
+
+    function formatAlertAge(ts) {
+      const diff = Math.floor(Date.now() / 1000) - ts;
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    function renderAlertCard(alert) {
+      const isConfirmed = alert.status === 'confirmed';
+      const archClass = isConfirmed ? 'confirmed-arch' : '';
+      const cardClass = isConfirmed ? 'alert-card confirmed' : 'alert-card';
+      const statusLabel = isConfirmed ? 'confirmed' : 'active';
+      const archDisplay = (alert.archetype || 'Unknown').replace(/_/g, ' ');
+      const age = formatAlertAge(alert.predictedAt);
+
+      const easLink = alert.easVerifyUrl
+        ? `<a href="${alert.easVerifyUrl}" target="_blank" class="alert-eas-link">⛓ EAS Proof</a>`
+        : '<span style="font-size:0.75rem;color:var(--text-secondary)">⛓ Attesting…</span>';
+
+      const confirmedBlock = isConfirmed && alert.confirmedClaimId ? `
+        <div class="alert-confirmed-proof">
+          ✅ <strong>PREDICTION CONFIRMED</strong> — Incident occurred after flag.
+          ${alert.confirmedClaimId ? `Claim: <code>${alert.confirmedClaimId}</code>` : ''}
+        </div>` : '';
+
+      const evidenceBlock = alert.summary
+        ? `<div class="alert-evidence">"${alert.summary}"</div>` : '';
+
+      return `
+        <div class="${cardClass}">
+          <div class="alert-card-header">
+            <div class="alert-meta">
+              <span class="alert-archetype ${archClass}">${archDisplay}</span>
+              <span class="alert-confidence">${alert.confidence}% confidence</span>
+              <span class="alert-status-badge ${statusLabel}">${statusLabel}</span>
+            </div>
+            <span class="alert-timestamp">${age}</span>
+          </div>
+          <div class="alert-title">${alert.title || archDisplay + ' — ' + (alert.agentName || alert.agentId)}</div>
+          ${evidenceBlock}
+          ${confirmedBlock}
+          <div class="alert-footer">
+            ${alert.chain ? `<span class="alert-chain">${alert.chain}</span>` : ''}
+            ${easLink}
+            ${alert.source ? `<span class="alert-chain">${alert.source}</span>` : ''}
+          </div>
+        </div>`;
+    }
+
+    async function loadRiskAlerts() {
+      try {
+        const resp = await fetch('/api/public/predictions?limit=20');
+        const data = await resp.json();
+        const feed = document.getElementById('alerts-feed');
+
+        if (!data.predictions || data.predictions.length === 0) {
+          feed.innerHTML = `<div class="alerts-empty">
+            🔍 No public alerts yet — predictions under 24h review.<br>
+            <small style="margin-top:0.5rem;display:block">The engine is scanning. First alerts will appear after internal review.</small>
+          </div>`;
+        } else {
+          feed.innerHTML = data.predictions.map(renderAlertCard).join('');
+        }
+
+        // Update stats
+        const active = data.activeCount ?? 0;
+        const confirmed = data.confirmedCount ?? 0;
+        const total = data.total ?? 0;
+        document.getElementById('alerts-active-count').textContent = active;
+        document.getElementById('alerts-confirmed-count').textContent = confirmed;
+        document.getElementById('alerts-total-count').textContent = total;
+      } catch (e) {
+        const feed = document.getElementById('alerts-feed');
+        if (feed) feed.innerHTML = '<div class="alerts-empty">Unable to load alerts.</div>';
+      }
+    }
+
+    loadRiskAlerts();
+
     // ==================== x402 Payment Modal ====================
     
     function openX402Modal() {

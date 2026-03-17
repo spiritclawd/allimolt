@@ -87,6 +87,45 @@ try { db.run("ALTER TABLE claims ADD COLUMN easUid TEXT"); } catch {}
 try { db.run("ALTER TABLE claims ADD COLUMN easVerifyUrl TEXT"); } catch {}
 try { db.run("ALTER TABLE claims ADD COLUMN easMode TEXT"); } catch {}
 
+// ==================== PREDICTIONS ====================
+// Pre-mortem risk flags: timestamped onchain BEFORE an incident happens.
+// When a predicted incident is later confirmed, status → 'confirmed'.
+// The gap between predictedAt and confirmedAt is the moat proof.
+db.run(`
+  CREATE TABLE IF NOT EXISTS predictions (
+    id TEXT PRIMARY KEY,
+    agentId TEXT NOT NULL,
+    agentName TEXT,
+    protocol TEXT,
+    chain TEXT,
+    contractAddress TEXT,
+
+    archetype TEXT NOT NULL,
+    confidence INTEGER NOT NULL,
+    riskScore INTEGER NOT NULL,
+    riskLevel TEXT NOT NULL,
+
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    reasons TEXT NOT NULL,
+
+    status TEXT DEFAULT 'active',
+    predictedAt INTEGER NOT NULL,
+    confirmedAt INTEGER,
+    confirmedClaimId TEXT,
+    confirmedTxHash TEXT,
+
+    source TEXT DEFAULT 'virtuals_monitor',
+    easUid TEXT,
+    easVerifyUrl TEXT,
+
+    created_at INTEGER DEFAULT (strftime('%s', 'now'))
+  )
+`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_predictions_status ON predictions(status)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_predictions_agentId ON predictions(agentId)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_predictions_predictedAt ON predictions(predictedAt)`);
+
 // Create API keys table
 db.run(`
   CREATE TABLE IF NOT EXISTS api_keys (
@@ -378,6 +417,119 @@ export function deleteClaimById(id: string): boolean {
 export function isDatabaseEmpty(): boolean {
   const count = countClaims();
   return count === 0;
+}
+
+// ==================== PREDICTIONS CRUD ====================
+
+export interface Prediction {
+  id: string;
+  agentId: string;
+  agentName?: string;
+  protocol?: string;
+  chain?: string;
+  contractAddress?: string;
+  archetype: string;
+  confidence: number;
+  riskScore: number;
+  riskLevel: string;
+  title: string;
+  summary: string;
+  reasons: string[];
+  status: "active" | "confirmed" | "expired" | "false_positive";
+  predictedAt: number;
+  confirmedAt?: number;
+  confirmedClaimId?: string;
+  confirmedTxHash?: string;
+  source: string;
+  easUid?: string;
+  easVerifyUrl?: string;
+}
+
+export function insertPrediction(p: Prediction): void {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO predictions (
+      id, agentId, agentName, protocol, chain, contractAddress,
+      archetype, confidence, riskScore, riskLevel,
+      title, summary, reasons, status, predictedAt,
+      confirmedAt, confirmedClaimId, confirmedTxHash, source, easUid, easVerifyUrl
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?,
+      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?
+    )
+  `);
+  stmt.run(
+    p.id, p.agentId, p.agentName ?? null, p.protocol ?? null, p.chain ?? null, p.contractAddress ?? null,
+    p.archetype, p.confidence, p.riskScore, p.riskLevel,
+    p.title, p.summary, JSON.stringify(p.reasons), p.status, p.predictedAt,
+    p.confirmedAt ?? null, p.confirmedClaimId ?? null, p.confirmedTxHash ?? null,
+    p.source, p.easUid ?? null, p.easVerifyUrl ?? null
+  );
+}
+
+export function getPredictions(opts: { status?: string; limit?: number } = {}): Prediction[] {
+  let query = "SELECT * FROM predictions";
+  const params: any[] = [];
+  if (opts.status) { query += " WHERE status = ?"; params.push(opts.status); }
+  query += " ORDER BY predictedAt DESC LIMIT ?";
+  params.push(opts.limit ?? 100);
+  const rows = db.prepare(query).all(...params) as any[];
+  return rows.map(rowToPrediction);
+}
+
+export function getPredictionById(id: string): Prediction | null {
+  const row = db.prepare("SELECT * FROM predictions WHERE id = ?").get(id) as any;
+  return row ? rowToPrediction(row) : null;
+}
+
+export function confirmPrediction(id: string, claimId: string, txHash?: string): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  const stmt = db.prepare(`
+    UPDATE predictions SET status = 'confirmed', confirmedAt = ?, confirmedClaimId = ?, confirmedTxHash = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(now, claimId, txHash ?? null, id);
+  return result.changes > 0;
+}
+
+export function patchPredictionEas(id: string, easUid: string, easVerifyUrl: string): boolean {
+  const stmt = db.prepare("UPDATE predictions SET easUid = ?, easVerifyUrl = ? WHERE id = ?");
+  const result = stmt.run(easUid, easVerifyUrl, id);
+  return result.changes > 0;
+}
+
+export function countPredictions(status?: string): number {
+  if (status) {
+    return (db.prepare("SELECT COUNT(*) as c FROM predictions WHERE status = ?").get(status) as any).c;
+  }
+  return (db.prepare("SELECT COUNT(*) as c FROM predictions").get() as any).c;
+}
+
+function rowToPrediction(row: any): Prediction {
+  return {
+    id: row.id,
+    agentId: row.agentId,
+    agentName: row.agentName ?? undefined,
+    protocol: row.protocol ?? undefined,
+    chain: row.chain ?? undefined,
+    contractAddress: row.contractAddress ?? undefined,
+    archetype: row.archetype,
+    confidence: row.confidence,
+    riskScore: row.riskScore,
+    riskLevel: row.riskLevel,
+    title: row.title,
+    summary: row.summary,
+    reasons: JSON.parse(row.reasons ?? "[]"),
+    status: row.status,
+    predictedAt: row.predictedAt,
+    confirmedAt: row.confirmedAt ?? undefined,
+    confirmedClaimId: row.confirmedClaimId ?? undefined,
+    confirmedTxHash: row.confirmedTxHash ?? undefined,
+    source: row.source,
+    easUid: row.easUid ?? undefined,
+    easVerifyUrl: row.easVerifyUrl ?? undefined,
+  };
 }
 
 // Close database connection (for graceful shutdown)

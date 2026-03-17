@@ -33,6 +33,13 @@ import {
   deleteClaimById,
   patchClaimOnChain,
   ApiKey,
+  insertPrediction,
+  getPredictions,
+  getPredictionById,
+  confirmPrediction,
+  patchPredictionEas,
+  countPredictions,
+  Prediction,
 } from "./db";
 import {
   checkRateLimit,
@@ -960,6 +967,84 @@ async function handleRequest(req: Request): Promise<Response> {
   const publicAgentMatch = path.match(/^\/api\/public\/agents\/([^/]+)\/score$/);
   if (publicAgentMatch) {
     return handleGetPublicAgentScore(publicAgentMatch[1]);
+  }
+
+  // ── Predictions (public read, admin write) ──────────────────────────────
+  if (path === "/api/public/predictions" && method === "GET") {
+    const status = url.searchParams.get("status") || undefined;
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+    const predictions = getPredictions({ status, limit });
+    return json({
+      predictions,
+      total: countPredictions(status),
+      activeCount: countPredictions("active"),
+      confirmedCount: countPredictions("confirmed"),
+    });
+  }
+
+  if (path === "/api/predictions" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    const status = url.searchParams.get("status") || undefined;
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
+    const predictions = getPredictions({ status, limit });
+    return json({ predictions, total: countPredictions(status) });
+  }
+
+  if (path === "/api/predictions" && method === "POST") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    try {
+      const body = await req.json() as Partial<Prediction>;
+      if (!body.agentId || !body.archetype || !body.title || !body.summary) {
+        return json({ success: false, error: "Missing required fields: agentId, archetype, title, summary" }, 400);
+      }
+      const id = `pred_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const prediction: Prediction = {
+        id,
+        agentId: body.agentId,
+        agentName: body.agentName,
+        protocol: body.protocol,
+        chain: body.chain,
+        contractAddress: body.contractAddress,
+        archetype: body.archetype,
+        confidence: body.confidence ?? 70,
+        riskScore: body.riskScore ?? 50,
+        riskLevel: body.riskLevel ?? "MEDIUM",
+        title: body.title,
+        summary: body.summary,
+        reasons: body.reasons ?? [],
+        status: "active",
+        predictedAt: Math.floor(Date.now() / 1000),
+        source: body.source ?? "manual",
+        easUid: body.easUid,
+        easVerifyUrl: body.easVerifyUrl,
+      };
+      insertPrediction(prediction);
+      console.log(`[predictions] New prediction: ${id} — ${prediction.title}`);
+      return json({ success: true, id, prediction }, 201);
+    } catch (e) {
+      return json({ success: false, error: "Invalid body" }, 400);
+    }
+  }
+
+  const predictionIdMatch = path.match(/^\/api\/predictions\/([^/]+)$/);
+  if (predictionIdMatch && method === "PATCH") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    const predId = predictionIdMatch[1];
+    try {
+      const body = await req.json() as any;
+      if (body.status === "confirmed" && body.confirmedClaimId) {
+        confirmPrediction(predId, body.confirmedClaimId, body.confirmedTxHash);
+      }
+      if (body.easUid && body.easVerifyUrl) {
+        patchPredictionEas(predId, body.easUid, body.easVerifyUrl);
+      }
+      return json({ success: true, patched: predId });
+    } catch (e) {
+      return json({ success: false, error: "Invalid body" }, 400);
+    }
   }
   
   // Badge endpoint (no auth required)
