@@ -246,7 +246,8 @@ Full strategy: `/home/computer/.memory/capabilities/alligo-acquisition-strategy.
 
 ### Carlos must action:
 - [x] npm token → `@alligo/plugin-elizaos@0.1.0` published to npm ✅
-- [ ] **⚠️ ETH on Base** → `0xBeE919f77e5b8b14776B5D687e1fb8Bf0080aa1d` needs ≥0.005 ETH for onchain EAS attestations (currently 0 ETH)
+- [ ] **⚠️ ETH on Base** → `0x9F810067eA679aBBF3A0726aFC858d6314D56892` needs ETH top-up — EAS wallet at 0.000 ETH, watchdog is alerting
+- [ ] **⚠️ USDC for new bounty** → Send USDC to `0xA5aCaA6779377217Ac8fC0A988Aee62C956eEe13` on Base
 
 ### Zaia executes when unblocked:
 - [ ] **EAS onchain flip**: Fund wallet first → set `EAS_MODE=onchain` in Railway env vars (currently set to onchain in .env but wallet is empty)
@@ -296,7 +297,7 @@ cat /home/computer/.memory/journal/$(date +%Y-%m-%d).md 2>/dev/null || ls /home/
 
 ---
 
-*Last updated: 2026-03-17 by Zaia (session 14)*
+*Last updated: 2026-03-17 by Zaia (session 18)*
 *Commit this file to spiritclawd/AlliGo master after any significant changes.*
 
 ---
@@ -308,3 +309,4 @@ cat /home/computer/.memory/journal/$(date +%Y-%m-%d).md 2>/dev/null || ls /home/
 *Updated 2026-03-17 session 16: EAS nonce fix — ROOT CAUSE FIXED. Previous 3s-delay approach helped but nonce collisions persisted. Real fix: fetch confirmed 'latest' nonce once at run start, pass explicit nonce override to EAS SDK attest() second-arg overrides, increment per tx, re-fetch on failure. Result: 6/6 success, 0 failures on first run (was 6/12 best case before). Also backfilled 54 claims (already attested in JSONL but DB eas_uid was null due to camelCase/snake_case confusion). Production: 60/60 eligible claims now have easUid in DB (13 onchain, 47 offchain). Committed f40751e and pushed to master.*
 *Updated 2026-03-17 session 16b: TASKMARKET PRIVATE KEY RECOVERED AND BACKED UP. Decoded DEK from https://api-market.daydreams.systems/api/devices/{deviceId}/key (POST, body: {apiToken, agentId}). Decrypted keystore with AES-256-GCM: iv(12)|tag(16)|ciphertext. Private key for 0xA5aCaA6779377217Ac8fC0A988Aee62C956eEe13 now in zaia-swarm/.env as TASKMARKET_PRIVATE_KEY. On next wipe: use 'taskmarket wallet import' with this key to restore. DEK endpoint requires TASKMARKET_DEVICE_ID + TASKMARKET_API_TOKEN (both in .env). Key: 0x479dddcdbcf8a907c2032d148eb677e7e7ecbac0398ed50808a9b92fa77d6d40*
 *Updated 2026-03-17 session 17: RISK ALERTS FEED BUILT. Pre-mortem prediction engine live. DB: predictions table (archetype, confidence, riskScore, status, predictedAt, easUid). API: /api/public/predictions (no auth), /api/predictions (admin CRUD). Dashboard: Risk Alerts section with live feed, disclaimer, stats, EAS proof links, confirmed-prediction proof block. Swarm: predictor.py agent (every 4h, ≥80% confidence gate, OpenRouter→Groq, reads virtuals_monitor+crawler, auto-confirms when incidents match). Commits: f274358 (API+DB+dashboard), 676e793 (swarm agent). Both pushed to spiritclawd/AlliGo master. Railway deploying.*
+*Updated 2026-03-17 session 18: TWO SWARM BUGS FIXED. (1) daydreams_reviewer.py crash: alligo_task_ids.json changed from plain list to dict format — load_task_ids() was calling .append() on a dict. Fixed to handle both formats (list and {active:[], legacy:[]} dict). (2) virtuals_monitor.py crash: holderCount and mcapInVirtual can be None from Virtuals API — comparison '> 0' raises TypeError. Fixed both fields with 'or 0' null guards. Both fixes committed as 681f6b8 and pushed to spiritclawd/AlliGo master. Swarm running PID 186. Production: 13 predictions (12 confirmed), 60/60 EAS claims. EAS wallet at 0 ETH — needs top-up. USDC wallet at $0 — needs funding from Carlos.*
