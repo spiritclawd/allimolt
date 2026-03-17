@@ -69,6 +69,18 @@
       "schedule_minutes": 30,
       "script": "agents/telegram_ingest.py",
       "description": "Polls @alligo_alerts channel and @alligoBot for user-submitted drain reports, submits new claims to AlliGo"
+    },
+    "daydreams_ingest": {
+      "enabled": true,
+      "schedule_minutes": 30,
+      "script": "agents/daydreams_ingest.py",
+      "description": "Polls Daydreams task market for completed agentic traces, filters for quality, submits to AlliGo forensics"
+    },
+    "daydreams_reviewer": {
+      "enabled": true,
+      "schedule_minutes": 15,
+      "script": "agents/daydreams_reviewer.py",
+      "description": "Reviews TaskMarket bounty submissions: validates, runs forensics, auto-accepts, pays USDC, ingests into AlliGo DB"
     }
   },
   "sources": {
@@ -78,7 +90,11 @@
       "https://www.coindesk.com/arc/outboundfeeds/rss/",
       "https://cointelegraph.com/rss"
     ],
-    "github_orgs": ["elizaos", "virtuals-io", "ai16z"],
+    "github_orgs": [
+      "elizaos",
+      "virtuals-io",
+      "ai16z"
+    ],
     "search_queries": [
       "AI agent exploit loss",
       "autonomous agent hack defi",

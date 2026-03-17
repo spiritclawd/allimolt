@@ -39,6 +39,37 @@ def load_state() -> dict:
 
 def save_state(state: dict):
     STATE_FILE.write_text(json.dumps(state, indent=2, default=str))
+    # Push state to prod API so /api/admin/swarm/status reflects live swarm data
+    try:
+        import urllib.request as _req
+        env_vars = load_env()
+        admin_key = env_vars.get("ALLIGO_ADMIN_KEY", "")
+        if admin_key:
+            agents_list = [
+                {
+                    "name": name,
+                    "last_run": v.get("last_run"),
+                    "last_success": v.get("last_success"),
+                    "run_count": v.get("run_count", 0),
+                    "status": "healthy" if v.get("last_success") else ("error" if v.get("last_success") is False else "pending"),
+                }
+                for name, v in state.items()
+            ]
+            payload = json.dumps({
+                "agents": agents_list,
+                "updated_at": datetime.now().isoformat(),
+                "healthy": sum(1 for a in agents_list if a["status"] == "healthy"),
+                "errors": sum(1 for a in agents_list if a["status"] == "error"),
+            }).encode()
+            r = _req.Request(
+                "https://alligo-production.up.railway.app/api/admin/swarm/push",
+                data=payload,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {admin_key}"},
+                method="POST"
+            )
+            _req.urlopen(r, timeout=5)
+    except Exception:
+        pass  # Non-critical — local state always written regardless
 
 def load_env() -> dict:
     """Load environment variables from .env file."""
@@ -147,9 +178,82 @@ def print_status(config: dict, state: dict):
         log(f"  {status} {agent_name}: runs={run_count}, last={last_run[:16] if last_run != 'never' else 'never'}")
     log("="*50)
 
+EAS_WALLET = "0xBeE919f77e5b8b14776B5D687e1fb8Bf0080aa1d"
+EAS_LOW_BALANCE_THRESHOLD = 0.002  # ETH — alert below this
+EAS_ALERT_INTERVAL = 3600 * 6  # re-alert at most every 6 hours
+_eas_last_alert_time = 0  # module-level dedup
+
+def send_telegram_alert(message: str, env_vars: dict) -> bool:
+    """Send a message to @alligo_alerts via Telegram Bot API."""
+    import urllib.request as _ur
+    token = env_vars.get("TELEGRAM_BOT_TOKEN", "")
+    channel = env_vars.get("TELEGRAM_CHANNEL_ID", "-1003655064149")
+    if not token:
+        return False
+    try:
+        payload = json.dumps({"chat_id": channel, "text": message, "parse_mode": "Markdown"}).encode()
+        req = _ur.Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with _ur.urlopen(req, timeout=10) as r:
+            result = json.loads(r.read())
+        return result.get("ok", False)
+    except Exception as e:
+        log(f"⚠️ Telegram alert failed: {e}", "watchdog")
+        return False
+
+def check_eas_wallet_balance(env_vars: dict):
+    """Check EAS attester wallet balance on Base; alert via Telegram if low."""
+    global _eas_last_alert_time
+    import urllib.request as _ur
+    try:
+        payload = json.dumps({
+            "jsonrpc": "2.0", "method": "eth_getBalance",
+            "params": [EAS_WALLET, "latest"], "id": 1
+        }).encode()
+        req = _ur.Request(
+            "https://mainnet.base.org",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with _ur.urlopen(req, timeout=10) as r:
+            result = json.loads(r.read())
+        wei = int(result["result"], 16)
+        eth = wei / 1e18
+        log(f"💰 EAS wallet balance: {eth:.6f} ETH", "watchdog")
+
+        now = time.time()
+        if eth < EAS_LOW_BALANCE_THRESHOLD:
+            if now - _eas_last_alert_time > EAS_ALERT_INTERVAL:
+                msg = (
+                    f"⚠️ *EAS Wallet Low Balance Alert*\n\n"
+                    f"Address: `{EAS_WALLET}`\n"
+                    f"Balance: `{eth:.6f} ETH` (threshold: {EAS_LOW_BALANCE_THRESHOLD} ETH)\n\n"
+                    f"Please top up on *Base Mainnet* to keep attestations running.\n"
+                    f"Each attestation costs ~0.0003–0.0008 ETH. Recommend sending 0.005+ ETH."
+                )
+                sent = send_telegram_alert(msg, env_vars)
+                if sent:
+                    log(f"🚨 Low balance alert sent to Telegram ({eth:.6f} ETH)", "watchdog")
+                    _eas_last_alert_time = now
+                else:
+                    log(f"🚨 Low balance ({eth:.6f} ETH) — Telegram alert FAILED", "watchdog")
+        else:
+            log(f"✓ EAS wallet OK ({eth:.6f} ETH ≥ {EAS_LOW_BALANCE_THRESHOLD} ETH threshold)", "watchdog")
+    except Exception as e:
+        log(f"⚠️ EAS balance check failed: {e}", "watchdog")
+
 def check_and_fix_calibration():
-    """Check AlliGo calibration status; auto-fix if needs_attention."""
+    """Check AlliGo calibration status; auto-fix if needs_attention. Also checks EAS wallet."""
     import urllib.request
+    env_vars = load_env()
+    # --- EAS wallet balance check ---
+    check_eas_wallet_balance(env_vars)
+    # --- Calibration check ---
     try:
         req = urllib.request.Request(
             "https://alligo-production.up.railway.app/health",
@@ -164,7 +268,6 @@ def check_and_fix_calibration():
                 "accuracy": 1.0, "tests_run": 60, "tests_passed": 60,
                 "archetypes_tested": 10, "avg_confidence": 0.82, "status": "healthy"
             }).encode()
-            env_vars = load_env()
             admin_key = env_vars.get("ALLIGO_ADMIN_KEY", "")
             fix_req = urllib.request.Request(
                 "https://alligo-production.up.railway.app/api/admin/calibration",
