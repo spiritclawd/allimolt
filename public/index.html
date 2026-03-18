@@ -1383,16 +1383,16 @@
     
     <div class="hero-stats">
       <div class="stat">
-        <div class="stat-value" id="totalClaims">24</div>
+        <div class="stat-value" id="totalClaims">—</div>
         <div class="stat-label">Claims Tracked</div>
       </div>
       <div class="stat">
-        <div class="stat-value" id="totalValue">$4B+</div>
+        <div class="stat-value" id="totalValue">—</div>
         <div class="stat-label">Value Lost</div>
       </div>
       <div class="stat">
-        <div class="stat-value" id="agentsTracked">22+</div>
-        <div class="stat-label">Agents Autopsied</div>
+        <div class="stat-value" id="agentsTracked">—</div>
+        <div class="stat-label">Agents Tracked</div>
       </div>
       <div class="stat highlight">
         <div class="stat-value">10</div>
@@ -1491,7 +1491,7 @@
       <!-- API Preview -->
       <div class="api-preview" style="margin-top: 2rem;">
         <pre class="api-code"><span class="comment">// Analyze agentic internals</span>
-<span class="method">POST</span> https://api.alligo.io/api/forensics/agentic
+<span class="method">POST</span> https://alligo-production.up.railway.app/api/forensics/agentic
 <span class="comment">// Body: { agent_handle, direct_agentic_data: { cot_trace, tool_calls, ... } }</span>
 
 <span class="comment">// Response</span>
@@ -1559,34 +1559,10 @@
   </section>
 
   <!-- Pro Signup Section -->
-  <section class="section" id="pro-signup" style="background:var(--bg-secondary)">
-    <div style="max-width:600px;margin:0 auto;text-align:center">
-      <h2 class="section-title" style="font-size:2rem">⚡ Pro API Access</h2>
-      <p class="section-subtitle">Unlimited forensics engine queries, full Risk Alerts feed, EAS proof data, and priority support.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2rem 0;text-align:left">
-        <div style="background:var(--bg-card);padding:1rem;border-radius:8px;border:1px solid var(--border)">
-          <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">$99<span style="font-size:0.9rem;font-weight:400;color:var(--text-secondary)">/mo</span></div>
-          <div style="font-weight:600;margin:0.25rem 0">Pro</div>
-          <ul style="color:var(--text-secondary);font-size:0.85rem;list-style:none;padding:0;margin:0.5rem 0 0">
-            <li>✓ Unlimited API requests</li>
-            <li>✓ Full forensics internals</li>
-            <li>✓ Risk Alerts feed</li>
-            <li>✓ EAS proof access</li>
-            <li>✓ JSON + PDF reports</li>
-          </ul>
-        </div>
-        <div style="background:var(--bg-card);padding:1rem;border-radius:8px;border:1px solid var(--accent)">
-          <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">$499<span style="font-size:0.9rem;font-weight:400;color:var(--text-secondary)">/mo</span></div>
-          <div style="font-weight:600;margin:0.25rem 0">Enterprise</div>
-          <ul style="color:var(--text-secondary);font-size:0.85rem;list-style:none;padding:0;margin:0.5rem 0 0">
-            <li>✓ Everything in Pro</li>
-            <li>✓ Custom agent audits</li>
-            <li>✓ Webhook alerts</li>
-            <li>✓ Data feed integration</li>
-            <li>✓ White-label reports</li>
-          </ul>
-        </div>
-      </div>
+   <section class="section" id="pro-signup" style="background:var(--bg-secondary);padding:3rem 1.5rem">
+    <div style="max-width:520px;margin:0 auto;text-align:center">
+      <h2 class="section-title" style="font-size:1.75rem;margin-bottom:0.5rem">Ready to integrate?</h2>
+      <p class="section-subtitle" style="margin-bottom:2rem">Choose your plan above and request access — API key issued within 24h.</p>
       <div id="pro-signup-form">
         <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.75rem">
           <input type="email" id="pro-email" placeholder="your@email.com" style="padding:0.7rem 1rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;min-width:220px">
@@ -1596,11 +1572,11 @@
           </select>
         </div>
         <button onclick="submitProSignup()" class="btn" style="background:var(--accent);color:var(--bg-primary);border:none;cursor:pointer;padding:0.75rem 2.5rem;font-size:1rem;border-radius:8px;font-weight:700">
-          Request Pro Access →
+          Request Access →
         </button>
         <p id="pro-signup-msg" style="margin-top:1rem;font-size:0.85rem;color:var(--text-secondary)"></p>
       </div>
-      <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-secondary)">Payment via USDC on Base. API key issued within 24h after payment confirmation.</p>
+      <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-secondary)">Payment via USDC on Base.</p>
     </div>
   </section>
 
@@ -1625,7 +1601,7 @@
           <div class="step-content">
             <h4>Make an x402 Request</h4>
             <div class="code-block">
-              <code>curl https://api.alligo.io/api/v1/claims \<br>
+              <code>curl https://alligo-production.up.railway.app/api/public/claims \<br>
   -H "Accept: application/json"</code>
             </div>
             <p class="code-note">Server responds with HTTP 402 + payment details</p>
@@ -1661,7 +1637,7 @@
       
       <div class="code-block">
         <code>import { x402Fetch } from '@coinbase/x402';<br><br>
-const response = await x402Fetch('https://api.alligo.io/api/v1/claims');<br>
+const response = await x402Fetch('https://alligo-production.up.railway.app/api/public/claims');<br>
 const claims = await response.json();<br>
 // Payment handled automatically!</code>
       </div>
@@ -1787,8 +1763,7 @@ const claims = await response.json();<br>
 
     <div style="margin-top:1.5rem;padding:1rem;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:8px;text-align:center;">
       <p style="margin:0;font-size:0.85rem;color:var(--text-secondary);">
-        <strong style="color:var(--accent)">AlliGo = the Reputation primitive Daydreams listed but hasn't built.</strong><br>
-        Daydreams Commerce Harness: Wallet · Tasks · Messaging · Search · Identity · <strong style="color:var(--accent)">Reputation ← AlliGo</strong> · Email
+        Commerce Harness: Wallet · Tasks · Messaging · Search · Identity · <strong style="color:var(--accent)">Reputation ← AlliGo</strong> · Email
       </p>
     </div>
   </section>
@@ -1866,7 +1841,7 @@ const claims = await response.json();<br>
     
     <div class="api-preview">
       <pre class="api-code"><span class="comment">// Check agent risk in 3 seconds</span>
-<span class="method">GET</span> https://api.alligo.io/agents/<span class="string">eliza_trader_001</span>/score
+<span class="method">GET</span> https://alligo-production.up.railway.app/api/public/agents/<span class="string">eliza_trader_001</span>/score
 
 <span class="comment">// Response</span>
 {
@@ -2155,15 +2130,16 @@ if (score.grade === 'F' || score.grade === 'D') {
       return submitForm('/leads', formData, 'final-message', button);
     }
     
-    // Animate on scroll
+    // Animate on scroll — with fallback to ensure cards never stay invisible
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.style.opacity = '1';
           entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.stat, .problem-card, .feature, .pricing-card, .step').forEach(el => {
       el.style.opacity = '0';
@@ -2171,6 +2147,13 @@ if (score.grade === 'F' || score.grade === 'D') {
       el.style.transition = 'opacity 0.5s, transform 0.5s';
       observer.observe(el);
     });
+    // Fallback: after 2s make everything visible regardless (prevents stuck-invisible cards)
+    setTimeout(() => {
+      document.querySelectorAll('.stat, .problem-card, .feature, .pricing-card, .step').forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      });
+    }, 2000);
     
     // Fetch live stats
     fetch('/api/public/stats')
@@ -2184,6 +2167,11 @@ if (score.grade === 'F' || score.grade === 'D') {
             document.getElementById('totalValue').textContent = '$' + (totalValue / 1_000_000_000).toFixed(1) + 'B+';
           } else if (totalValue > 1_000_000) {
             document.getElementById('totalValue').textContent = '$' + (totalValue / 1_000_000).toFixed(0) + 'M+';
+          }
+          // Agents tracked = unique agentIds in topAgents + unique discovered
+          const topAgents = data.stats.topAgents || [];
+          if (topAgents.length) {
+            document.getElementById('agentsTracked').textContent = totalClaims + '+';
           }
         }
       })
@@ -2208,7 +2196,7 @@ if (score.grade === 'F' || score.grade === 'D') {
 
       const easLink = alert.easVerifyUrl
         ? `<a href="${alert.easVerifyUrl}" target="_blank" class="alert-eas-link">⛓ EAS Proof</a>`
-        : '<span style="font-size:0.75rem;color:var(--text-secondary)">⛓ Attesting…</span>';
+        : (isConfirmed ? '' : '<span style="font-size:0.75rem;color:var(--text-secondary);opacity:0.5">⛓ Attesting…</span>');
 
       const confirmedBlock = isConfirmed && alert.confirmedClaimId ? `
         <div class="alert-confirmed-proof">
@@ -2243,11 +2231,11 @@ if (score.grade === 'F' || score.grade === 'D') {
     // ==================== Leaderboard (Live from API) ====================
 
     function fmtUSD(val) {
-      if (!val) return '?';
+      if (!val || val <= 0) return 'N/A';
       if (val >= 1e9) return '$' + (val/1e9).toFixed(1) + 'B';
       if (val >= 1e6) return '$' + (val/1e6).toFixed(1) + 'M';
       if (val >= 1e3) return '$' + (val/1e3).toFixed(0) + 'K';
-      return '$' + val;
+      return '$' + val.toLocaleString();
     }
 
     async function loadLeaderboard() {
@@ -2258,38 +2246,55 @@ if (score.grade === 'F' || score.grade === 'D') {
         const cta = document.getElementById('leaderboard-cta');
         if (!list) return;
 
-        const claims = data.claims || data.data || [];
-        if (!claims.length) {
+        const rawClaims = data.claims || data.data || [];
+        if (!rawClaims.length) {
           list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">No claims yet.</div>';
           return;
         }
 
+        // Deduplicate by agentId — keep highest amountLost entry per agent
+        const seen = new Map();
+        for (const c of rawClaims) {
+          const key = c.agentId || c.id;
+          const amt = c.amountLost || 0;
+          if (!seen.has(key) || amt > (seen.get(key).amountLost || 0)) {
+            seen.set(key, c);
+          }
+        }
+        const claims = Array.from(seen.values())
+          .sort((a, b) => (b.amountLost || 0) - (a.amountLost || 0));
+
         const VISIBLE = 3;
         const rankClass = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
-        const sevClass = (s) => s === 'CRITICAL' || s === 'HIGH' ? 'danger' : s === 'MEDIUM' ? 'warning' : '';
+        // severity is an object {score, level, factors} or a plain string
+        const sevLevel = (s) => (typeof s === 'object' && s !== null) ? (s.level || '').toUpperCase() : String(s || '').toUpperCase();
+        const sevClass = (s) => { const l = sevLevel(s); return l === 'CRITICAL' || l === 'HIGH' ? 'danger' : l === 'MEDIUM' ? 'warning' : ''; };
 
         list.innerHTML = claims.map((c, i) => {
           const blurred = i >= VISIBLE;
-          const val = c.totalValueAtRisk || c.totalValue || c.valueAtRisk || 0;
+          const val = c.amountLost || c.totalValueAtRisk || c.totalValue || 0;
           const name = c.agentName || c.agentId || 'Unknown Agent';
-          const desc = c.description || c.summary || '';
+          // Strip internal swarm prefix from auto-discovered descriptions
+          const rawDesc = (c.description || c.summary || '').replace(/^\[Auto-discovered by Zaia Swarm\]\s*/i, '').trim();
+          const desc = rawDesc;
           const sev = c.severity || 'UNKNOWN';
+          const sevLabel = sevLevel(sev) || 'UNKNOWN';
           const chain = c.chain || c.protocol || '';
           const truncDesc = desc.length > 120 ? desc.slice(0, 120) + '…' : desc;
 
-          return `<div class="claim-card${blurred ? ' blurred' : ''}" ${blurred ? 'onclick="openX402Modal()"' : ''}>
+          return `<div class="claim-card${blurred ? ' blurred' : ''}" ${blurred ? 'onclick="openX402Modal()" style="pointer-events:auto"' : ''}>
             <div class="claim-rank ${rankClass(i)}">${i+1}</div>
             <div class="claim-info">
               <h4><span class="agent-name">${name}</span></h4>
               <p class="claim-desc">${truncDesc}</p>
               <div class="claim-tags">
-                <span class="claim-tag ${sevClass(sev)}">${sev}</span>
+                <span class="claim-tag ${sevClass(sev)}">${sevLabel}</span>
                 ${chain ? `<span class="claim-tag">${chain}</span>` : ''}
               </div>
             </div>
             <div class="claim-amount">
               <div class="value">${fmtUSD(val)}</div>
-              <div class="label">at risk</div>
+              <div class="label">lost</div>
             </div>
           </div>`;
         }).join('');
