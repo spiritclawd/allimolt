@@ -2273,10 +2273,18 @@ if (score.grade === 'F' || score.grade === 'D') {
         list.innerHTML = claims.map((c, i) => {
           const blurred = i >= VISIBLE;
           const val = c.amountLost || c.totalValueAtRisk || c.totalValue || 0;
-          const name = c.agentName || c.agentId || 'Unknown Agent';
           // Strip internal swarm prefix from auto-discovered descriptions
-          const rawDesc = (c.description || c.summary || '').replace(/^\[Auto-discovered by Zaia Swarm\]\s*/i, '').trim();
+          const rawDesc = (c.description || c.summary || '').replace(/^\[Auto-discovered by Zaia Swarm\]\s*/i, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
           const desc = rawDesc;
+          // For auto-discovered agents, try to extract a protocol name from the description
+          let name = c.agentName || c.agentId || 'Unknown Agent';
+          if (name === 'Auto-Discovered Agent' || (c.agentId || '').startsWith('discovered_')) {
+            // Common protocol name patterns in description text
+            const protoMatch = rawDesc.match(/\b(Aave|Compound|Uniswap|Curve|MakerDAO|dYdX|Euler|Radiant|Kyber|Balancer|AAVE|GMX|Gains|Ribbon|Velodrome|Synthetix|Morpho|Angle|Frax|Lido|Renzo|Pendle|YieldBlox|Script3|Blend|IoTeX|ioTube|Mango|Orca|Drift|Raydium|Solend|Serum|Anchor|Mirror|Convex|Yearn|Cream|Harvest|BadgerDAO|Beanstalk|Nomad|Wormhole|Ronin|Horizon|Poly Network|Qubit|Meter|Multichain|Harmony|Wintermute|Transit Swap|Sentiment|Deus Finance|Inverse Finance|Rari|Tribe|Fuse|Flux|Sonne|Conic|Balancer|Alchemix|Hundred|Agave|QiDao|Olympus|Tokemak|Pirex|Tectonic|Blizz|Geist|Vesta|Yeti|Abracadabra|Spell|Wonderland|Snowball|Pangolin|TraderJoe|Platypus|Vector|Echidna|Penpie|Magpie|Stake DAO|Beefy|Tapioca|Silo|Fraxlend|Prisma|crvUSD|GHO|pyUSD|USDD|Tron|Justin Sun)\b/i);
+            if (protoMatch) {
+              name = protoMatch[1] + ' Protocol';
+            }
+          }
           const sev = c.severity || 'UNKNOWN';
           const sevLabel = sevLevel(sev) || 'UNKNOWN';
           const chain = c.chain || c.protocol || '';
