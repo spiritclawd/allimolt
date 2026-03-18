@@ -2168,10 +2168,10 @@ if (score.grade === 'F' || score.grade === 'D') {
           } else if (totalValue > 1_000_000) {
             document.getElementById('totalValue').textContent = '$' + (totalValue / 1_000_000).toFixed(0) + 'M+';
           }
-          // Agents tracked = unique agentIds in topAgents + unique discovered
-          const topAgents = data.stats.topAgents || [];
-          if (topAgents.length) {
-            document.getElementById('agentsTracked').textContent = totalClaims + '+';
+          // Agents tracked = unique agentIds across all claims
+          const uniqueAgents = data.stats.uniqueAgents || (data.stats.topAgents || []).length;
+          if (uniqueAgents) {
+            document.getElementById('agentsTracked').textContent = uniqueAgents + '+';
           }
         }
       })

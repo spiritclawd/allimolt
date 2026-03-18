@@ -449,6 +449,7 @@ function handleGetStats(req: Request): Response {
     success: true,
     stats: {
       totalClaims: claims.length,
+      uniqueAgents: agentMap.size,
       totalValueLost,
       totalValueRecovered,
       recoveryRate: totalValueLost > 0 ? totalValueRecovered / totalValueLost : 0,
