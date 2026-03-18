@@ -170,7 +170,7 @@ npx --yes @lucid-agents/taskmarket wallet import --key $TASKMARKET_PRIVATE_KEY -
 
 ---
 
-## 6. THE SWARM — 13 AGENTS
+## 6. THE SWARM — 14 AGENTS
 
 All agents live in `/home/computer/zaia-swarm/agents/`. Scheduled via `swarm.py`.
 
@@ -185,10 +185,11 @@ All agents live in `/home/computer/zaia-swarm/agents/`. Scheduled via `swarm.py`
 | `eas_attester.py` | 12h | EAS attestations (offchain free / onchain needs ETH) |
 | `agentmail_router.py` | 30min | Polls spirit@agentmail.to, routes inbound, auto-replies |
 | `virtuals_monitor.py` | 60min | Monitors Virtuals Protocol, risk-scores new agents |
-| `telegram_ingest.py` | 30min | Polls @alligo_alerts + @alligoBot |
+| `telegram_ingest.py` | 30min | Polls @alligo_alerts + @alligoBot; handles `/report` commands |
 | `daydreams_ingest.py` | 30min | Polls TaskMarket for new submissions |
 | `daydreams_reviewer.py` | 15min | Reviews + pays USDC to bounty submitters |
 | `predictor.py` | 4h | Pre-mortem predictions (≥80% confidence gate) |
+| `revenue_reporter.py` | daily | Posts daily revenue report to Telegram channel |
 
 Swarm also has built-in watchdog: fires every 5min, auto-fixes calibration drift, checks EAS wallet balance.
 
@@ -245,12 +246,20 @@ The core MOAT. Located at `/home/computer/alligo/src/forensics/`.
 
 ## 11. ACQUISITION OUTREACH
 
-Emails sent 2026-03-17 from `spirit@agentmail.to`:
-- **Armilla AI**: `pdawson@armilla.ai` (cc: `ifilipov@armilla.ai`) — subject: "AlliGo — Pre-Mortem Risk Intelligence for AI Agent Underwriting"
-- **Virtuals Protocol**: `info@virtuals.io` — subject: "AlliGo — Behavioral Risk Engine Running on Virtuals Protocol Right Now"
-- **Base/Coinbase**: `partnerships@base.org` — subject: "AlliGo — The Credit Bureau for AI Agents, Built Native on Base"
+**2026-03-17** (via agentmail SDK):
+- **Armilla AI**: `pdawson@armilla.ai` (cc: `ifilipov@armilla.ai`) — "AlliGo — Pre-Mortem Risk Intelligence for AI Agent Underwriting"
+- **Virtuals Protocol**: `info@virtuals.io` — "AlliGo — Behavioral Risk Engine Running on Virtuals Protocol Right Now"
+- **Base/Coinbase**: `partnerships@base.org` — "AlliGo — The Credit Bureau for AI Agents, Built Native on Base"
 
-Follow up via agentmail if no response within 5 business days. Check inbox: `GET https://api.agentmail.to/v0/inboxes/spirit@agentmail.to/threads?limit=20`
+**2026-03-18 — ERC-8004 Birthday outreach (PENDING — agentmail outbound blocked 403)**
+- **Davide Crapis (EF dAI lead, ERC-8004 co-author)**: `dcrapis@ethereum.org` — "ERC-8004 birthday — AlliGo is your live Reputation Registry on Base"
+- **Erik Reppel (Coinbase, ERC-8004 co-author)**: `ereppel@coinbase.com` — "ERC-8004 birthday — AlliGo is the Reputation layer (live on Base, x402 native)"
+- Drafts sent to Telegram @alligo_alerts for Carlos to send manually
+- **Fix needed**: agentmail outbound send returns 403 Forbidden — may need account upgrade or connect Gmail
+
+**Agentmail outbound issue**: All `client.inboxes.messages.send()` calls return 403. Inbound reading works fine. Check agentmail account plan or connect Google/Gmail via `adaptive-ai-mcp_integrations_request_connection` for outbound.
+
+Follow up: Check inbox `GET https://api.agentmail.to/v0/inboxes/spirit@agentmail.to/threads?limit=20`
 
 ---
 
@@ -331,20 +340,23 @@ cd /home/computer/zaia-swarm && set -a && source .env && set +a && bash agents/c
 
 ---
 
-## 16. PRODUCTION STATE (as of 2026-03-17 session 18)
+## 16. PRODUCTION STATE (as of 2026-03-18 session 19)
 
-- **95 claims** tracked
+- **96 claims** tracked
 - **$4.025B+** total value at risk analyzed
 - **100%** calibration accuracy (72 tests)
 - **13 predictions** (12 confirmed, 1 active) — 92% hit rate
 - **60/60** eligible claims EAS attested (13 onchain, 47 offchain)
-- **Swarm**: 13 agents running
-- **Outreach**: Emails sent to Armilla AI, Virtuals Protocol, Base/Coinbase
-- **Pending Carlos**: EAS ETH top-up (on hold), USDC for new bounty (on hold)
+- **Swarm**: 14 agents running (added `revenue_reporter.py`)
+- **Dashboard**: ERC-8004 Reputation Provider positioning live
+- **Revenue ignition**: `/api/public/claims` leaderboard, `/api/signup/pro`, `/api/revenue`, x402 CTAs all live
+- **Telegram**: `/report` command handler live in `telegram_ingest.py`
+- **Outreach**: Emails sent to Armilla AI, Virtuals Protocol, Base/Coinbase (s18); ERC-8004 birthday drafts queued for Davide Crapis (EF) + Erik Reppel (Coinbase) — pending agentmail fix
+- **Pending Carlos**: EAS ETH top-up (on hold), USDC for new bounty (on hold), send ERC-8004 birthday emails manually
 
 ---
 
-*Last updated: 2026-03-17 by Zaia (session 18)*
+*Last updated: 2026-03-18 by Zaia (session 19)*
 *Commit this file to spiritclawd/AlliGo master after any significant changes.*
 
 ---
@@ -358,3 +370,4 @@ cd /home/computer/zaia-swarm && set -a && source .env && set +a && bash agents/c
 *s16b: TaskMarket private key recovered via DEK endpoint, backed up to .env + Railway.*
 *s17: Risk Alerts Feed built end-to-end. Predictor agent. 13 predictions seeded.*
 *s18: Two swarm bugs fixed (task_ids dict format, virtuals NoneType). Outreach emails sent to 3 acquisition targets. RECOVER.sh created. ZAIA_BOOTSTRAP hardened.*
+*s19: Revenue ignition complete (leaderboard, pro signup, /report command, revenue reporter). ERC-8004 birthday — dashboard repositioned as Reputation Registry, outreach drafts queued for EF + Coinbase co-authors.*
