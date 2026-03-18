@@ -2261,19 +2261,24 @@ if (score.grade === 'F' || score.grade === 'D') {
             seen.set(key, c);
           }
         }
-        // Secondary dedup: collapse entries with same amountLost + same title (different agentIds for same incident)
+        // Secondary dedup: collapse entries that represent the same real-world incident
         // Prefer named agents (non-discovered) over auto-discovered duplicates
         const amtTitleSeen = new Map();
         const deduped = [];
         for (const c of Array.from(seen.values()).sort((a,b) => {
-          // Put named agents first so they win over auto-discovered
+          // Put named (non-discovered) agents first so they win over auto-discovered
           const aDisc = (a.agentId||'').startsWith('discovered_') ? 1 : 0;
           const bDisc = (b.agentId||'').startsWith('discovered_') ? 1 : 0;
           return aDisc - bDisc;
         })) {
-          const dupKey = `${c.amountLost||0}::${(c.title||'').toLowerCase().slice(0,40)}`;
-          if (!amtTitleSeen.has(dupKey)) {
-            amtTitleSeen.set(dupKey, true);
+          // Key 1: same amountLost + first 40 chars of title
+          const titleKey = `${c.amountLost||0}::${(c.title||'').toLowerCase().slice(0,40)}`;
+          // Key 2: for discovered agents, same amountLost alone (e.g. Step Finance $27.3M from two sources)
+          const amtKey = (c.agentId||'').startsWith('discovered_') ? `amt::${c.amountLost||0}` : null;
+          const alreadySeen = amtTitleSeen.has(titleKey) || (amtKey && amtTitleSeen.has(amtKey));
+          if (!alreadySeen) {
+            amtTitleSeen.set(titleKey, true);
+            if (amtKey) amtTitleSeen.set(amtKey, true);
             deduped.push(c);
           }
         }
@@ -2296,8 +2301,8 @@ if (score.grade === 'F' || score.grade === 'D') {
           let name = c.agentName || c.agentId || 'Unknown Agent';
           if (name === 'Auto-Discovered Agent' || (c.agentId || '').startsWith('discovered_')) {
             // Common protocol name patterns in description text
-            // Check for market-wide events first
-            if (/liquidation/i.test(rawDesc) && /market|crypto market/i.test(rawDesc)) {
+            // Check for market-wide events first (must mention "crypto market" + liquidations, not protocol-specific events)
+            if (/liquidation/i.test(rawDesc) && /crypto market|saw \$\d+ million in liquidation/i.test(rawDesc)) {
               name = 'Market Liquidation Event';
             } else {
               const protoMatch = rawDesc.match(/\b(Step Finance|Aave|Compound|Uniswap|Curve|MakerDAO|dYdX|Euler|Radiant|Kyber|Balancer|AAVE|GMX|Gains|Ribbon|Velodrome|Synthetix|Morpho|Angle|Frax|Lido|Renzo|Pendle|YieldBlox|Script3|Blend|IoTeX|ioTube|Mango|Orca|Drift|Raydium|Solend|Serum|Anchor|Mirror|Convex|Yearn|Cream|Harvest|BadgerDAO|Beanstalk|Nomad|Wormhole|Ronin|Horizon|Poly Network|Qubit|Meter|Multichain|Harmony|Wintermute|Transit Swap|Sentiment|Deus Finance|Inverse Finance|Rari|Tribe|Fuse|Flux|Sonne|Conic|Alchemix|Hundred|Agave|QiDao|Olympus|Tokemak|Pirex|Tectonic|Blizz|Geist|Vesta|Yeti|Abracadabra|Spell|Wonderland|Snowball|Pangolin|TraderJoe|Platypus|Vector|Echidna|Penpie|Magpie|Stake DAO|Beefy|Tapioca|Silo|Fraxlend|Prisma|crvUSD|GHO|pyUSD|USDD|Tron|Justin Sun)\b/i);
