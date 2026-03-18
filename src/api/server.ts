@@ -969,6 +969,18 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleGetPublicAgentScore(publicAgentMatch[1]);
   }
 
+  // ── Public Claims Leaderboard (top claims by value, free — top 3 visible) ─
+  if (path === "/api/public/claims" && method === "GET") {
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 50);
+    const allClaims = getAllClaims(limit * 2); // fetch extra to sort
+    // Sort by totalValueAtRisk descending
+    const sorted = allClaims
+      .filter((c: any) => c.totalValueAtRisk > 0)
+      .sort((a: any, b: any) => (b.totalValueAtRisk || 0) - (a.totalValueAtRisk || 0))
+      .slice(0, limit);
+    return json({ claims: sorted, total: sorted.length });
+  }
+
   // ── Predictions (public read, admin write) ──────────────────────────────
   if (path === "/api/public/predictions" && method === "GET") {
     const status = url.searchParams.get("status") || undefined;
@@ -2285,7 +2297,87 @@ async function handleRequest(req: Request): Promise<Response> {
       return error("Failed to create API key", 500);
     }
   }
-  
+
+  // ── Pro Signup (manual confirm — records intent, sends payment instructions) ─
+  if (path === "/api/signup/pro" && method === "POST") {
+    try {
+      const body = await req.json() as { email: string; tier?: string };
+      if (!body.email || !body.email.includes("@")) {
+        return error("Valid email is required", 400);
+      }
+      const tier = body.tier === "enterprise" ? "enterprise" : "pro";
+      const priceUsd = tier === "enterprise" ? 499 : 99;
+      const recipientAddress = config.usdcRecipientAddress || "0x1dcD106e0807E80d538E5F1A8b3B9980A055A7a5";
+
+      // Log the pro signup request (Telegram alert)
+      const telegramToken = config.telegramBotToken;
+      const telegramChannel = config.telegramChannelId || "-1003655064149";
+      if (telegramToken) {
+        const msg = `🎯 *Pro Signup Request*\n\nEmail: \`${body.email}\`\nTier: ${tier} ($${priceUsd}/mo)\nTime: ${new Date().toISOString()}\n\nSend *${priceUsd} USDC* on Base to:\n\`${recipientAddress}\`\nThen reply with tx hash to issue API key.`;
+        fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: telegramChannel, text: msg, parse_mode: "Markdown" })
+        }).catch(() => {});
+      }
+
+      return json({
+        success: true,
+        tier,
+        price_usd: priceUsd,
+        payment: {
+          recipient: recipientAddress,
+          amount_usdc: priceUsd,
+          chain: "Base",
+          usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          instructions: `Send exactly ${priceUsd} USDC on Base to ${recipientAddress}. Reply to spirit@agentmail.to with your tx hash and email. API key will be issued within 24h.`
+        },
+        message: `Got it! Send ${priceUsd} USDC on Base to ${recipientAddress} and email spirit@agentmail.to with your tx hash. Your Pro API key will be issued within 24h.`
+      });
+    } catch (e) {
+      console.error("Error processing pro signup:", e);
+      return error("Failed to process pro signup", 500);
+    }
+  }
+
+  // ── Revenue Dashboard (admin) ──────────────────────────────────────────────
+  if (path === "/api/revenue" && method === "GET") {
+    const authCheck = requireAuth(req, "admin");
+    if (!authCheck.valid) return authCheck.response!;
+    try {
+      const paymentStats = getPaymentStats();
+      const apiKeys = listApiKeys();
+      const proKeys = apiKeys.filter((k: any) => k.tier === "pro" || k.tier === "enterprise");
+      const freeKeys = apiKeys.filter((k: any) => k.tier === "free");
+      const claimCount = countClaims();
+      const predCount = countPredictions();
+      const confirmedPreds = countPredictions("confirmed");
+
+      return json({
+        revenue: {
+          total_usdc: paymentStats.totalRevenue,
+          unlocks_count: paymentStats.totalPayments,
+          breakdown: paymentStats.byTier || {},
+        },
+        api_keys: {
+          total: apiKeys.length,
+          pro: proKeys.length,
+          free: freeKeys.length,
+          pro_details: proKeys.map((k: any) => ({ name: k.name, tier: k.tier, createdAt: k.createdAt })),
+        },
+        forensics: {
+          total_claims: claimCount,
+          total_predictions: predCount,
+          confirmed_predictions: confirmedPreds,
+          prediction_accuracy: predCount > 0 ? Math.round(confirmedPreds / predCount * 100) : 0,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      return error("Failed to generate revenue report", 500);
+    }
+  }
+
   return error("Not found", 404);
 }
 

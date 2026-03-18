@@ -1533,6 +1533,67 @@
       <div id="alerts-feed">
         <div class="alerts-loading">Loading risk alerts…</div>
       </div>
+
+      <!-- Risk Alerts Unlock CTA -->
+      <div style="text-align:center;margin-top:2rem;padding:1.5rem;background:var(--bg-card);border:1px dashed var(--accent);border-radius:12px;">
+        <p style="color:var(--text-secondary);margin-bottom:1rem">
+          🔒 <strong style="color:var(--text-primary)">Full internals</strong> — archetype confidence breakdown, EAS proof links, and raw forensics signals — require API access.
+        </p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <button onclick="openX402Modal()" class="btn" style="background:var(--accent);color:var(--bg-primary);border:none;cursor:pointer;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600">
+            One-time unlock — $1 USDC via x402
+          </button>
+          <a href="#pro-signup" class="btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none">
+            Pro API key — $99 / mo
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pro Signup Section -->
+  <section class="section" id="pro-signup" style="background:var(--bg-secondary)">
+    <div style="max-width:600px;margin:0 auto;text-align:center">
+      <h2 class="section-title" style="font-size:2rem">⚡ Pro API Access</h2>
+      <p class="section-subtitle">Unlimited forensics engine queries, full Risk Alerts feed, EAS proof data, and priority support.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2rem 0;text-align:left">
+        <div style="background:var(--bg-card);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">$99<span style="font-size:0.9rem;font-weight:400;color:var(--text-secondary)">/mo</span></div>
+          <div style="font-weight:600;margin:0.25rem 0">Pro</div>
+          <ul style="color:var(--text-secondary);font-size:0.85rem;list-style:none;padding:0;margin:0.5rem 0 0">
+            <li>✓ Unlimited API requests</li>
+            <li>✓ Full forensics internals</li>
+            <li>✓ Risk Alerts feed</li>
+            <li>✓ EAS proof access</li>
+            <li>✓ JSON + PDF reports</li>
+          </ul>
+        </div>
+        <div style="background:var(--bg-card);padding:1rem;border-radius:8px;border:1px solid var(--accent)">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">$499<span style="font-size:0.9rem;font-weight:400;color:var(--text-secondary)">/mo</span></div>
+          <div style="font-weight:600;margin:0.25rem 0">Enterprise</div>
+          <ul style="color:var(--text-secondary);font-size:0.85rem;list-style:none;padding:0;margin:0.5rem 0 0">
+            <li>✓ Everything in Pro</li>
+            <li>✓ Custom agent audits</li>
+            <li>✓ Webhook alerts</li>
+            <li>✓ Data feed integration</li>
+            <li>✓ White-label reports</li>
+          </ul>
+        </div>
+      </div>
+      <div id="pro-signup-form">
+        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.75rem">
+          <input type="email" id="pro-email" placeholder="your@email.com" style="padding:0.7rem 1rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;min-width:220px">
+          <select id="pro-tier" style="padding:0.7rem 1rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary)">
+            <option value="pro">Pro — $99/mo</option>
+            <option value="enterprise">Enterprise — $499/mo</option>
+          </select>
+        </div>
+        <button onclick="submitProSignup()" class="btn" style="background:var(--accent);color:var(--bg-primary);border:none;cursor:pointer;padding:0.75rem 2.5rem;font-size:1rem;border-radius:8px;font-weight:700">
+          Request Pro Access →
+        </button>
+        <p id="pro-signup-msg" style="margin-top:1rem;font-size:0.85rem;color:var(--text-secondary)"></p>
+      </div>
+      <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-secondary)">Payment via USDC on Base. API key issued within 24h after payment confirmation.</p>
     </div>
   </section>
 
@@ -1624,119 +1685,21 @@ const claims = await response.json();<br>
   <!-- Claims Leaderboard - The Hook -->
   <section class="claims-leaderboard" id="leaderboard">
     <h2>💸 Agent Failure Leaderboard</h2>
-    <p class="subtitle">Real incidents. Real money lost. This is why you check before you trust.</p>
+    <p class="subtitle">Real incidents. Real money lost. Live from the AlliGo database — updated by autonomous swarm agents.</p>
     
-    <div class="claims-list">
-      <!-- #1 - Arup Deepfake (VISIBLE HOOK) -->
-      <div class="claim-card">
-        <div class="claim-rank rank-1">1</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">Arup Finance Verification Agent</span></h4>
-          <p class="claim-desc">AI deepfakes impersonated CFO in video call, authorized transfer. Insufficient verification of video participants.</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">FRAUD</span>
-            <span class="claim-tag">SECURITY</span>
-            <span class="claim-tag">Traditional Banking</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$25M</div>
-          <div class="label">HK$200M lost</div>
-        </div>
-      </div>
-      
-      <!-- #2 - AI Portfolio Manager (VISIBLE HOOK) -->
-      <div class="claim-card">
-        <div class="claim-rank rank-2">2</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">AI Portfolio Manager</span></h4>
-          <p class="claim-desc">Whale's AI-managed portfolio collapsed 88% on agent tokens. No stop-losses, no position limits, concentrated exposure.</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">LOSS</span>
-            <span class="claim-tag">TRADING</span>
-            <span class="claim-tag">Multi-chain</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$20.4M</div>
-          <div class="label">Portfolio collapse</div>
-        </div>
-      </div>
-      
-      <!-- #3 - KiloEx (VISIBLE HOOK) -->
-      <div class="claim-card">
-        <div class="claim-rank rank-3">3</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">KiloEx Trading Agent</span></h4>
-          <p class="claim-desc">Flash loan exploit manipulated price oracles. No flash loan protection. Platform drained in hours.</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">LOSS</span>
-            <span class="claim-tag warning">TRADING</span>
-            <span class="claim-tag">BNB Chain</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$7M</div>
-          <div class="label">Flash loan exploit</div>
-        </div>
-      </div>
-      
-      <!-- #4 - BLURRED (LOCKED) -->
-      <div class="claim-card blurred">
-        <div class="claim-rank rank-other">4</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">Credix Lending Agent</span></h4>
-          <p class="claim-desc">Admin wallet compromised, attacker minted tokens and drained protocol funds...</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">SECURITY</span>
-            <span class="claim-tag">Ethereum</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$4.5M</div>
-          <div class="label">Admin key breach</div>
-        </div>
-      </div>
-      
-      <!-- #5 - BLURRED (LOCKED) -->
-      <div class="claim-card blurred">
-        <div class="claim-rank rank-other">5</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">Makina Yield Optimizer</span></h4>
-          <p class="claim-desc">Flash loan attack on Curve pool, MEV bots front-ran price manipulation...</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">LOSS</span>
-            <span class="claim-tag">Curve Finance</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$4.1M</div>
-          <div class="label">Price manipulation</div>
-        </div>
-      </div>
-      
-      <!-- #6 - BLURRED (LOCKED) -->
-      <div class="claim-card blurred">
-        <div class="claim-rank rank-other">6</div>
-        <div class="claim-info">
-          <h4><span class="agent-name">Griffin AI DeFi Agent</span></h4>
-          <p class="claim-desc">Exploited one day after launch. Smart contract vulnerability drained funds...</p>
-          <div class="claim-tags">
-            <span class="claim-tag danger">SECURITY</span>
-            <span class="claim-tag">Ethereum</span>
-          </div>
-        </div>
-        <div class="claim-amount">
-          <div class="value">$3M</div>
-          <div class="label">Day-1 exploit</div>
-        </div>
-      </div>
+    <div class="claims-list" id="leaderboard-list">
+      <div style="text-align:center;padding:2rem;color:var(--text-secondary)">Loading leaderboard…</div>
     </div>
     
     <!-- Unlock CTA -->
-    <div class="unlock-cta">
-      <p>🔒 <strong>19 more claims</strong> in our database. Unlock full access to see all incidents, root causes, and risk scores.</p>
-      <button onclick="openX402Modal()" class="btn" style="background: var(--accent); color: var(--bg-primary); border: none; cursor: pointer;">Unlock with x402 — $1 USDC</button>
+    <div class="unlock-cta" id="leaderboard-cta" style="display:none">
+      <p>🔒 <strong id="locked-count"></strong> — full forensics internals, root causes, and EAS proof timestamps.</p>
+      <button onclick="openX402Modal()" class="btn" style="background: var(--accent); color: var(--bg-primary); border: none; cursor: pointer; padding: 0.75rem 2rem; font-size: 1rem; border-radius: 8px;">
+        Unlock Full Access — $1 USDC via x402
+      </button>
+      <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-secondary)">
+        Or <a href="#pro-signup" style="color:var(--accent)">get Pro API key ($99/mo) →</a>
+      </p>
     </div>
   </section>
 
@@ -2182,6 +2145,112 @@ if (score.grade === 'F' || score.grade === 'D') {
             ${alert.source ? `<span class="alert-chain">${alert.source}</span>` : ''}
           </div>
         </div>`;
+    }
+
+    // ==================== Leaderboard (Live from API) ====================
+
+    function fmtUSD(val) {
+      if (!val) return '?';
+      if (val >= 1e9) return '$' + (val/1e9).toFixed(1) + 'B';
+      if (val >= 1e6) return '$' + (val/1e6).toFixed(1) + 'M';
+      if (val >= 1e3) return '$' + (val/1e3).toFixed(0) + 'K';
+      return '$' + val;
+    }
+
+    async function loadLeaderboard() {
+      try {
+        const resp = await fetch('/api/public/claims?limit=20&sort=value');
+        const data = await resp.json();
+        const list = document.getElementById('leaderboard-list');
+        const cta = document.getElementById('leaderboard-cta');
+        if (!list) return;
+
+        const claims = data.claims || data.data || [];
+        if (!claims.length) {
+          list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">No claims yet.</div>';
+          return;
+        }
+
+        const VISIBLE = 3;
+        const rankClass = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+        const sevClass = (s) => s === 'CRITICAL' || s === 'HIGH' ? 'danger' : s === 'MEDIUM' ? 'warning' : '';
+
+        list.innerHTML = claims.map((c, i) => {
+          const blurred = i >= VISIBLE;
+          const val = c.totalValueAtRisk || c.totalValue || c.valueAtRisk || 0;
+          const name = c.agentName || c.agentId || 'Unknown Agent';
+          const desc = c.description || c.summary || '';
+          const sev = c.severity || 'UNKNOWN';
+          const chain = c.chain || c.protocol || '';
+          const truncDesc = desc.length > 120 ? desc.slice(0, 120) + '…' : desc;
+
+          return `<div class="claim-card${blurred ? ' blurred' : ''}" ${blurred ? 'onclick="openX402Modal()"' : ''}>
+            <div class="claim-rank ${rankClass(i)}">${i+1}</div>
+            <div class="claim-info">
+              <h4><span class="agent-name">${name}</span></h4>
+              <p class="claim-desc">${truncDesc}</p>
+              <div class="claim-tags">
+                <span class="claim-tag ${sevClass(sev)}">${sev}</span>
+                ${chain ? `<span class="claim-tag">${chain}</span>` : ''}
+              </div>
+            </div>
+            <div class="claim-amount">
+              <div class="value">${fmtUSD(val)}</div>
+              <div class="label">at risk</div>
+            </div>
+          </div>`;
+        }).join('');
+
+        // Show unlock CTA
+        if (claims.length > VISIBLE && cta) {
+          const locked = claims.length - VISIBLE;
+          document.getElementById('locked-count').textContent = `${locked} more incident${locked > 1 ? 's' : ''} locked`;
+          cta.style.display = 'block';
+        }
+
+        // Re-wire blur clicks
+        list.querySelectorAll('.claim-card.blurred').forEach(card => {
+          card.style.pointerEvents = 'auto';
+        });
+      } catch(e) {
+        const list = document.getElementById('leaderboard-list');
+        if (list) list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">Unable to load leaderboard.</div>';
+      }
+    }
+
+    loadLeaderboard();
+
+    // ==================== Pro Signup ====================
+
+    async function submitProSignup() {
+      const email = document.getElementById('pro-email').value.trim();
+      const tier = document.getElementById('pro-tier').value;
+      const msg = document.getElementById('pro-signup-msg');
+      if (!email || !email.includes('@')) {
+        msg.textContent = 'Please enter a valid email address.';
+        msg.style.color = 'var(--danger)';
+        return;
+      }
+      msg.textContent = 'Submitting…';
+      msg.style.color = 'var(--text-secondary)';
+      try {
+        const resp = await fetch('/api/signup/pro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, tier })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          msg.innerHTML = `✅ ${data.message}`;
+          msg.style.color = 'var(--accent)';
+        } else {
+          msg.textContent = data.error || 'Something went wrong.';
+          msg.style.color = 'var(--danger)';
+        }
+      } catch(e) {
+        msg.textContent = 'Network error — try again.';
+        msg.style.color = 'var(--danger)';
+      }
     }
 
     async function loadRiskAlerts() {
