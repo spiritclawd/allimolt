@@ -170,7 +170,7 @@ npx --yes @lucid-agents/taskmarket wallet import --key $TASKMARKET_PRIVATE_KEY -
 
 ---
 
-## 6. THE SWARM — 14 AGENTS
+## 6. THE SWARM — 15 AGENTS
 
 All agents live in `/home/computer/zaia-swarm/agents/`. Scheduled via `swarm.py`.
 
@@ -190,6 +190,7 @@ All agents live in `/home/computer/zaia-swarm/agents/`. Scheduled via `swarm.py`
 | `daydreams_reviewer.py` | 15min | Reviews + pays USDC to bounty submitters |
 | `predictor.py` | 4h | Pre-mortem predictions (≥80% confidence gate) |
 | `revenue_reporter.py` | daily | Posts daily revenue report to Telegram channel |
+| `daydreams_monitor.py` | 6h | ⭐ NEW: Scores all Daydreams Commerce Harness agents; AlliGo as ERC-8004 Reputation layer |
 
 Swarm also has built-in watchdog: fires every 5min, auto-fixes calibration drift, checks EAS wallet balance.
 
@@ -340,23 +341,54 @@ cd /home/computer/zaia-swarm && set -a && source .env && set +a && bash agents/c
 
 ---
 
-## 16. PRODUCTION STATE (as of 2026-03-18 session 19)
+## 16. DAYDREAMS INTEGRATION (session 20)
+
+**What was built:**
+- `daydreams_monitor.py` — fetches all 100 Daydreams TaskMarket agents via `https://api-market.daydreams.systems/v1/agents?limit=100&sort=reputation`, runs AlliGo forensic scoring on each, saves to `zaia-swarm/data/daydreams_scored.json`, broadcasts Telegram alerts
+- `GET /api/daydreams/agents` — public endpoint returning live scored agents with risk scores, severity, signals; reads from `zaia-swarm/data/daydreams_scored.json` (primary) or `data/daydreams_scored.json` (fallback)
+- Dashboard section "🤖 Daydreams Commerce Harness" — live stats (total agents, high-risk count, avg risk), per-agent cards with risk scores, market links, x402 badges
+- **100 agents scored** on first run: avg risk 66/100, 4 high-risk agents flagged
+
+**Key technical facts:**
+- Daydreams API: `https://api-market.daydreams.systems/v1/agents?limit=100&sort=reputation` (NOT `/api/agents` — 404)
+- Agent data shape: `{rank, address, agentId, completedTasks, averageRating, totalEarnings (μUSDC), skills, emailAddress}`
+- `totalEarnings` is in micro-USDC (÷1e6 for real value)
+- Claims API requires `title`, `claimType`, `category` fields (in addition to legacy fields)
+- `daydreams_scored.json` lives at `/home/computer/zaia-swarm/data/daydreams_scored.json` — **not committed to git** (transient state)
+
+**Acquisition pitch narrative:**
+> "Daydreams listed Reputation as a Commerce Harness primitive but hasn't built it. AlliGo is scoring 100 Daydreams agents live right now. We ARE the Reputation layer — ERC-8004 compatible, x402 native, Base attested."
+
+**Draft tweet for Carlos** (send when Daydreams section is live on prod):
+> "You listed Reputation as a Commerce Harness primitive. We built it.
+> AlliGo is scoring 100+ @daydreamsagents TaskMarket agents live right now — risk scores, behavioral signals, ERC-8004 attested on Base.
+> → [alligo-production.up.railway.app/#daydreams]
+> @taskmarket cc @lucidagents"
+
+---
+
+## 17. PRODUCTION STATE (as of 2026-03-18 session 20)
 
 - **96 claims** tracked
 - **$4.025B+** total value at risk analyzed
 - **100%** calibration accuracy (72 tests)
 - **13 predictions** (12 confirmed, 1 active) — 92% hit rate
 - **60/60** eligible claims EAS attested (13 onchain, 47 offchain)
-- **Swarm**: 14 agents running (added `revenue_reporter.py`)
-- **Dashboard**: ERC-8004 Reputation Provider positioning live
+- **Swarm**: 15 agents running (added `daydreams_monitor.py`)
+- **Dashboard**: ERC-8004 Reputation Provider positioning live + Daydreams leaderboard section live
 - **Revenue ignition**: `/api/public/claims` leaderboard, `/api/signup/pro`, `/api/revenue`, x402 CTAs all live
 - **Telegram**: `/report` command handler live in `telegram_ingest.py`
+- **Daydreams**: 100 agents scored, `GET /api/daydreams/agents` live, dashboard section live
 - **Outreach**: Emails sent to Armilla AI, Virtuals Protocol, Base/Coinbase (s18); ERC-8004 birthday drafts queued for Davide Crapis (EF) + Erik Reppel (Coinbase) — pending agentmail fix
-- **Pending Carlos**: EAS ETH top-up (on hold), USDC for new bounty (on hold), send ERC-8004 birthday emails manually
+- **Pending Carlos**:
+  - ⚡ Send ERC-8004 birthday emails manually (drafts in Telegram @alligo_alerts)
+  - ⚡ Send Daydreams acquisition tweet (draft in section 16 above)
+  - EAS ETH top-up (on hold)
+  - USDC for new TaskMarket bounty (on hold)
 
 ---
 
-*Last updated: 2026-03-18 by Zaia (session 19)*
+*Last updated: 2026-03-18 by Zaia (session 20)*
 *Commit this file to spiritclawd/AlliGo master after any significant changes.*
 
 ---
@@ -371,3 +403,4 @@ cd /home/computer/zaia-swarm && set -a && source .env && set +a && bash agents/c
 *s17: Risk Alerts Feed built end-to-end. Predictor agent. 13 predictions seeded.*
 *s18: Two swarm bugs fixed (task_ids dict format, virtuals NoneType). Outreach emails sent to 3 acquisition targets. RECOVER.sh created. ZAIA_BOOTSTRAP hardened.*
 *s19: Revenue ignition complete (leaderboard, pro signup, /report command, revenue reporter). ERC-8004 birthday — dashboard repositioned as Reputation Registry, outreach drafts queued for EF + Coinbase co-authors.*
+*s20: Daydreams Commerce Harness integration complete. daydreams_monitor.py (15th swarm agent). 100 agents scored. GET /api/daydreams/agents live. Dashboard Daydreams leaderboard section live. Acquisition tweet drafted. ZAIA_BOOTSTRAP updated with full wipeout-recovery detail.*
