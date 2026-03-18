@@ -1363,10 +1363,10 @@
   </nav>
 
   <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-badge">🚀 NOW LIVE — 22+ Agents Tracked</div>
+   <section class="hero">
+    <div class="hero-badge">🏛️ ERC-8004 Reputation Provider — Live on Base</div>
     <h1>We See What Agents<br><span class="highlight">Think Before They Act</span></h1>
-    <p class="hero-subtitle">The only bureau analyzing agent internals (CoT traces, tool calls, goal drift) to predict blow-ups <strong>before wallet tx</strong>. Not credit scores — <strong>forensic autopsies</strong>.</p>
+    <p class="hero-subtitle">The reference Reputation Registry for <strong>ERC-8004 Trustless Agents</strong> — analyzing CoT traces, tool calls, and goal drift to predict blow-ups <strong>before wallet tx</strong>. Not credit scores — <strong>forensic autopsies</strong>. EAS-attested on Base.</p>
     
     <!-- Hero Email Capture Form -->
     <form class="email-form" id="hero-form" onsubmit="return handleHeroSubmit(event)">
@@ -1395,9 +1395,16 @@
         <div class="stat-label">Agents Autopsied</div>
       </div>
       <div class="stat highlight">
-        <div class="stat-value">8</div>
+        <div class="stat-value">10</div>
         <div class="stat-label">Behavioral Archetypes</div>
       </div>
+      <div class="stat">
+        <div class="stat-value">ERC-8004</div>
+        <div class="stat-label">Reputation Provider</div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;font-size:0.8rem;color:var(--text-secondary)">
+      Compatible with <strong style="color:var(--accent)">ERC-8004</strong> · Payments via <strong style="color:var(--accent)">x402</strong> · Attested on <strong style="color:var(--accent)">Base</strong>
     </div>
   </section>
 
@@ -1683,6 +1690,45 @@ const claims = await response.json();<br>
   </div>
   
   <!-- Claims Leaderboard - The Hook -->
+  <!-- ERC-8004 Section -->
+  <section class="section" id="erc8004" style="background:var(--bg-secondary);border-top:1px solid var(--border)">
+    <div style="max-width:800px;margin:0 auto;text-align:center">
+      <div style="display:inline-block;background:rgba(0,255,136,0.1);border:1px solid var(--accent);border-radius:20px;padding:0.35rem 1rem;font-size:0.75rem;font-weight:700;color:var(--accent);letter-spacing:0.08em;margin-bottom:1.5rem">
+        🎂 ERC-8004 GENESIS MONTH — MARCH 2026
+      </div>
+      <h2 class="section-title" style="font-size:1.9rem">AlliGo is the Reputation Layer for <span style="color:var(--accent)">ERC-8004</span></h2>
+      <p class="section-subtitle" style="max-width:620px;margin:0 auto 2rem">
+        ERC-8004 (Trustless Agents) defines three on-chain registries: Identity, <strong>Reputation</strong>, and Validation.
+        AlliGo is the reference implementation of the Reputation Registry — behavioral forensics, EAS-attested on Base, queryable via x402.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;text-align:left">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:1.25rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">🪪</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;font-size:0.9rem">Identity Registry</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary)">ERC-721 per agent. We index and score any registered agent automatically.</div>
+        </div>
+        <div style="background:var(--bg-card);border:2px solid var(--accent);border-radius:10px;padding:1.25rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">🧠</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;font-size:0.9rem;color:var(--accent)">Reputation Registry ← AlliGo</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary)">10 behavioral archetypes. 96 incidents. 92% prediction accuracy. EAS-attested on Base.</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:1.25rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">✅</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;font-size:0.9rem">Validation Registry</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary)">Our forensics signals feed into independent validators and zkML verifiers.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="https://eips.ethereum.org/EIPS/eip-8004" target="_blank" class="btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);padding:0.6rem 1.4rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.9rem">
+          Read EIP-8004 →
+        </a>
+        <a href="#pro-signup" class="btn" style="background:var(--accent);color:var(--bg-primary);border:none;padding:0.6rem 1.4rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.9rem">
+          Get Reputation API Access →
+        </a>
+      </div>
+    </div>
+  </section>
+
   <section class="claims-leaderboard" id="leaderboard">
     <h2>💸 Agent Failure Leaderboard</h2>
     <p class="subtitle">Real incidents. Real money lost. Live from the AlliGo database — updated by autonomous swarm agents.</p>
@@ -1945,6 +1991,9 @@ if (score.grade === 'F' || score.grade === 'D') {
     
     <div class="guarantee">
       <p>✅ <strong>Free forever tier</strong> • ✅ <strong>Setup in 5 minutes</strong> • ✅ <strong>Cancel anytime</strong></p>
+      <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-secondary)">
+        ERC-8004 Reputation Provider · x402 native · EAS attested on Base
+      </p>
     </div>
   </section>
 
